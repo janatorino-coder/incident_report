@@ -2,6 +2,16 @@
 <?php
 session_start();
 
+if (
+    isset($_SESSION['user_id']) &&
+    time() - (int)($_SESSION['last_activity'] ?? 0) > 900
+) {
+    session_unset();
+    session_destroy();
+    header('Location: ../html/Torino.html?sessionExpired=1');
+    exit;
+}
+
 /*
  * Only a logged-in student can open this dashboard.
  * Register first, then log in.
@@ -13,6 +23,8 @@ if (
     header('Location: ../html/Torino.html');
     exit;
 }
+
+$_SESSION['last_activity'] = time();
 
 if (is_file(dirname(__DIR__) . "/php/config.php")) {
     require_once dirname(__DIR__) . "/php/config.php";

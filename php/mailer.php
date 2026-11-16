@@ -80,13 +80,13 @@ function sendRegistrationOTP(string $recipient, string $otp): bool
             <p>Thank you for registering with Incident Hub.</p>
             <p>Your registration verification code is:</p>
             <h1 style='letter-spacing: 8px;'>{$safeOTP}</h1>
-            <p>This code expires in <strong>4 minutes</strong>.</p>
+            <p>This code expires in <strong>5 minutes</strong>.</p>
             <p>If you did not create this account, please ignore this email.</p>
         ";
 
         $mail->AltBody =
             "Your Incident Hub registration OTP is: {$otp}. "
-            . "It expires in 4 minutes.";
+            . "It expires in 5 minutes.";
 
         return $mail->send();
 
@@ -102,7 +102,7 @@ function sendRegistrationOTP(string $recipient, string $otp): bool
 
 
 // ==========================================
-// LOGIN OTP - 60 SECONDS
+// LOGIN OTP - 5 MINUTES
 // ==========================================
 
 function sendLoginOTP(string $recipient, string $otp): bool
@@ -126,13 +126,13 @@ function sendLoginOTP(string $recipient, string $otp): bool
             <h2>Incident Hub Verification</h2>
             <p>Your login verification code is:</p>
             <h1 style='letter-spacing: 8px;'>{$safeOTP}</h1>
-            <p>This code expires in 60 seconds.</p>
+            <p>This code expires in 5 minutes.</p>
             <p>If you did not attempt to log in, please ignore this email.</p>
         ";
 
         $mail->AltBody =
             "Your Incident Hub verification code is {$otp}. "
-            . "It expires in 60 seconds.";
+            . "It expires in 5 minutes.";
 
         return $mail->send();
 
@@ -261,7 +261,7 @@ function sendOwnerLockoutAlert(
 
 
 // ==========================================
-// PASSWORD RESET OTP - 60 SECONDS
+// PASSWORD RESET OTP - 5 MINUTES
 // ==========================================
 
 function sendResetOTP(string $recipient, string $otp): bool
@@ -285,13 +285,13 @@ function sendResetOTP(string $recipient, string $otp): bool
             <h2>Incident Hub Password Reset</h2>
             <p>Your password reset code is:</p>
             <h1 style='letter-spacing: 8px;'>{$safeOTP}</h1>
-            <p>This code expires in 60 seconds.</p>
+            <p>This code expires in 5 minutes.</p>
             <p>If you did not request a password reset, please ignore this email.</p>
         ";
 
         $mail->AltBody =
             "Your Incident Hub password reset code is {$otp}. "
-            . "It expires in 60 seconds.";
+            . "It expires in 5 minutes.";
 
         return $mail->send();
 

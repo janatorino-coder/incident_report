@@ -454,7 +454,7 @@
                                 id="firstName"
                                 name="first_name"
                                 placeholder="Enter your first name"
-                                maxlength="21"
+                                maxlength="50"
                                 autocomplete="given-name"
                                 required
                             >
@@ -479,7 +479,7 @@
                                 id="middleName"
                                 name="middle_name"
                                 placeholder="Enter your middle name (optional)"
-                                maxlength="21"
+                                maxlength="50"
                                 autocomplete="additional-name"
                             >
 
@@ -503,7 +503,7 @@
                                 id="familyName"
                                 name="family_name"
                                 placeholder="Enter your family name"
-                                maxlength="21"
+                                maxlength="50"
                                 autocomplete="family-name"
                                 required
                             >
@@ -757,7 +757,7 @@
                                 name="username"
                                 placeholder="Enter your username"
                                 minlength="6"
-                                maxlength="17"
+                                maxlength="20"
                                 autocomplete="username"
                                 required
                             >
@@ -811,7 +811,7 @@
                                 id="password"
                                 name="password"
                                 placeholder="Create a password"
-                                minlength="9"
+                                minlength="8"
                                 maxlength="64"
                                 autocomplete="new-password"
                                 required
@@ -855,7 +855,7 @@
                                 id="confirmPassword"
                                 name="confirm_password"
                                 placeholder="Re-enter your password"
-                                minlength="9"
+                                minlength="8"
                                 maxlength="64"
                                 autocomplete="new-password"
                                 required
@@ -915,7 +915,7 @@
                     <div class="input-group">
 
                         <label for="securityQ5">
-                            What street did you live on in Grade 1?
+                            What dish did you cook for the first time?
                             <span>*</span>
                         </label>
 
@@ -1071,6 +1071,8 @@
                                 id="loginUsername"
                                 name="username"
                                 placeholder="Enter your username"
+                                minlength="6"
+                                maxlength="20"
                                 autocomplete="username"
                                 required
                             >
@@ -1095,6 +1097,8 @@
                                 id="loginPassword"
                                 name="password"
                                 placeholder="Enter your password"
+                                minlength="8"
+                                maxlength="64"
                                 autocomplete="current-password"
                                 required
                             >
@@ -1163,8 +1167,8 @@
                             Remember me
                         </label>
 
-                        <a href="../forgot_pass/forgot_password.html">
-                            Forgot password?
+                        <a href="../forgot_pass/forgot_password.html" id="forgotPasswordLink" hidden>
+                            Forgot Password?
                         </a>
 
                     </div>

@@ -1,10 +1,23 @@
 <?php
 session_start();
 
+if (
+    isset($_SESSION['user_id']) &&
+    time() - (int)($_SESSION['last_activity'] ?? 0) > 900
+) {
+    session_unset();
+    session_destroy();
+    header("Location: ../html/Torino.html?sessionExpired=1");
+    exit;
+}
+
 if (!isset($_SESSION["user_id"]) || strtolower((string)($_SESSION["role"] ?? "")) !== "admin") {
     header("Location: ../html/Torino.html");
     exit;
 }
+
+$_SESSION['last_activity'] = time();
+
 mysqli_report(MYSQLI_REPORT_OFF);
 
 function h($value): string {

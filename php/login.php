@@ -6,8 +6,56 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/mailer.php';
 
 const MAX_ATTEMPTS = 3;
-const COOLDOWN_SECONDS = 60;
+const LOCKOUT_TIERS = [15, 30, 60];
 const CAPTCHA_EXPIRY = 300;
+const IP_FAILURE_LIMIT = 10;
+const IP_FAILURE_WINDOW_SECONDS = 600;
+
+function loginLockoutSeconds(int $failedAttempts): int
+{
+    $tier = min(
+        count(LOCKOUT_TIERS) - 1,
+        max(0, intdiv(max(1, $failedAttempts) - 1, MAX_ATTEMPTS))
+    );
+
+    return LOCKOUT_TIERS[$tier];
+}
+
+function ipLoginLockout(mysqli $conn, string $ip): array
+{
+    $stmt = $conn->prepare(
+        "SELECT COUNT(*) AS failures,
+                TIMESTAMPDIFF(SECOND, MIN(created_at), NOW()) AS oldest_age
+         FROM security_events
+         WHERE ip_address = ?
+           AND event_type = 'failed_login'
+           AND created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)"
+    );
+
+    if (!$stmt) {
+        loginResponse(false, 'Login is temporarily unavailable.');
+    }
+
+    $stmt->bind_param('s', $ip);
+
+    if (!$stmt->execute()) {
+        $stmt->close();
+        loginResponse(false, 'Login is temporarily unavailable.');
+    }
+
+    $result = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $failures = (int)($result['failures'] ?? 0);
+    $oldestAge = (int)($result['oldest_age'] ?? 0);
+
+    return [
+        'failures' => $failures,
+        'remainingSeconds' => $failures >= IP_FAILURE_LIMIT
+            ? max(1, IP_FAILURE_WINDOW_SECONDS - $oldestAge)
+            : 0
+    ];
+}
 
 $isAjax = isset($_POST['ajax']) ||
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
@@ -77,6 +125,14 @@ if ($username === '' || $password === '') {
     loginResponse(false, 'Please enter your username and password.');
 }
 
+if (strlen($username) < 6 || strlen($username) > 20) {
+    loginResponse(false, 'Username must be between 6 and 20 characters.');
+}
+
+if (strlen($password) < 8 || strlen($password) > 64) {
+    loginResponse(false, 'Password must be between 8 and 64 characters.');
+}
+
 // ==========================================
 // STEP 1: CAPTCHA VALIDATION
 // ==========================================
@@ -106,6 +162,23 @@ if (
 // STEP 2: CHECK FAILED LOGIN ATTEMPTS
 // ==========================================
 
+$ipLockout = ipLoginLockout($conn, $ip);
+
+if ($ipLockout['remainingSeconds'] > 0) {
+    $remaining = $ipLockout['remainingSeconds'];
+
+    loginResponse(
+        false,
+        "Too many failed login attempts from this network. Please wait {$remaining} seconds.",
+        [
+            'lockedOut' => true,
+            'remainingSeconds' => $remaining,
+            'remainingAttempts' => 0,
+            'refreshCaptcha' => true
+        ]
+    );
+}
+
 $stmt = $conn->prepare(
     'SELECT failed_attempts,
             TIMESTAMPDIFF(SECOND, last_failed_at, NOW()) AS seconds_since_fail
@@ -126,13 +199,17 @@ $stmt->close();
 
 $currentFailedCount = (int)($attemptRow['failed_attempts'] ?? 0);
 
-if ($currentFailedCount >= MAX_ATTEMPTS) {
+if (
+    $currentFailedCount >= MAX_ATTEMPTS &&
+    $currentFailedCount % MAX_ATTEMPTS === 0
+) {
 
     $elapsed = (int)($attemptRow['seconds_since_fail'] ?? 0);
+    $cooldown = loginLockoutSeconds($currentFailedCount);
 
-    if ($elapsed < COOLDOWN_SECONDS) {
+    if ($elapsed < $cooldown) {
 
-        $remaining = COOLDOWN_SECONDS - $elapsed;
+        $remaining = $cooldown - $elapsed;
 
         loginResponse(
             false,
@@ -141,26 +218,12 @@ if ($currentFailedCount >= MAX_ATTEMPTS) {
                 'lockedOut' => true,
                 'remainingSeconds' => $remaining,
                 'remainingAttempts' => 0,
+                'forgotPasswordAvailable' => $currentFailedCount >= 2,
                 'refreshCaptcha' => true
             ]
         );
     }
 
-    // Reset attempts only after cooldown expires.
-    $reset = $conn->prepare(
-        'UPDATE login_attempts
-         SET failed_attempts = 0,
-             last_failed_at = NULL
-         WHERE username = ? AND ip_address = ?'
-    );
-
-    if (!$reset) {
-        loginResponse(false, 'Unable to reset login attempts.');
-    }
-
-    $reset->bind_param('ss', $username, $ip);
-    $reset->execute();
-    $reset->close();
 }
 
 // ==========================================
@@ -251,7 +314,7 @@ if (!$valid) {
     );
 
     // SEND OWNER LOCKOUT EMAIL
-    if ($newCount === MAX_ATTEMPTS) {
+    if ($newCount % MAX_ATTEMPTS === 0) {
         $emailSent = sendOwnerLockoutAlert(
             'jana.torino@csucc.edu.ph',
             'login',
@@ -266,17 +329,40 @@ if (!$valid) {
         }
     }
 
-    $remainingAttempts = max(0, MAX_ATTEMPTS - $newCount);
-    $lockedNow = $newCount >= MAX_ATTEMPTS;
+    $attemptsInTier = $newCount % MAX_ATTEMPTS;
+    $remainingAttempts = $attemptsInTier === 0
+        ? 0
+        : MAX_ATTEMPTS - $attemptsInTier;
+    $lockedNow = $newCount >= MAX_ATTEMPTS && $attemptsInTier === 0;
+    $ipLockout = ipLoginLockout($conn, $ip);
 
-    if ($lockedNow) {
+    if ($ipLockout['remainingSeconds'] > 0) {
+        $remaining = $ipLockout['remainingSeconds'];
+
         loginResponse(
             false,
-            'Too many failed login attempts. Please wait ' . COOLDOWN_SECONDS . ' seconds.',
+            "Too many failed login attempts from this network. Please wait {$remaining} seconds.",
             [
                 'lockedOut' => true,
-                'remainingSeconds' => COOLDOWN_SECONDS,
+                'remainingSeconds' => $remaining,
                 'remainingAttempts' => 0,
+                'forgotPasswordAvailable' => $newCount >= 2,
+                'refreshCaptcha' => true
+            ]
+        );
+    }
+
+    if ($lockedNow) {
+        $cooldown = loginLockoutSeconds($newCount);
+
+        loginResponse(
+            false,
+            'Too many failed login attempts. Please wait ' . $cooldown . ' seconds.',
+            [
+                'lockedOut' => true,
+                'remainingSeconds' => $cooldown,
+                'remainingAttempts' => 0,
+                'forgotPasswordAvailable' => $newCount >= 2,
                 'refreshCaptcha' => true
             ]
         );
@@ -288,6 +374,7 @@ if (!$valid) {
         [
             'lockedOut' => false,
             'remainingAttempts' => $remainingAttempts,
+            'forgotPasswordAvailable' => $newCount >= 2,
             'refreshCaptcha' => true
         ]
     );
@@ -351,7 +438,7 @@ $delete->close();
 $insert = $conn->prepare(
     'INSERT INTO login_otp
         (user_id, otp_hash, expires_at, attempts, resend_count, last_sent_at, locked_until)
-     VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 60 SECOND), 0, 0, NOW(), NULL)'
+     VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE), 0, 0, NOW(), NULL)'
 );
 
 if (!$insert) {

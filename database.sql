@@ -81,16 +81,17 @@ CREATE TABLE IF NOT EXISTS security_events (
     details TEXT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_security_user (user_id),
-    INDEX idx_security_created (created_at)
+    INDEX idx_security_created (created_at),
+    INDEX idx_security_ip_event_created (ip_address, event_type, created_at)
 );
 
 CREATE TABLE IF NOT EXISTS student_profiles (
     id_number VARCHAR(9) NOT NULL PRIMARY KEY,
     user_id INT(10) UNSIGNED NOT NULL UNIQUE,
 
-    first_name VARCHAR(21) NOT NULL,
-    middle_name VARCHAR(21) DEFAULT NULL,
-    family_name VARCHAR(21) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    middle_name VARCHAR(50) DEFAULT NULL,
+    family_name VARCHAR(50) NOT NULL,
     name_extension VARCHAR(5) DEFAULT NULL,
 
     birthdate DATE NOT NULL,
@@ -112,6 +113,11 @@ CREATE TABLE IF NOT EXISTS student_profiles (
         REFERENCES users(id)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE student_profiles
+    MODIFY first_name VARCHAR(50) NOT NULL,
+    MODIFY middle_name VARCHAR(50) DEFAULT NULL,
+    MODIFY family_name VARCHAR(50) NOT NULL;
 
 CREATE TABLE IF NOT EXISTS student_security_questions (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

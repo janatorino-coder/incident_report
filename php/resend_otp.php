@@ -394,9 +394,7 @@ if ($otpHash === false) {
 // SET OTP EXPIRATION
 // ==========================================
 
-$expirationMinutes = (
-    $authType === 'registration'
-) ? 4 : 1;
+$expirationMinutes = 5;
 
 
 // ==========================================

@@ -624,6 +624,7 @@ session_regenerate_id(true);
 $_SESSION['user_id'] = $authenticatedUserId;
 $_SESSION['username'] = $username;
 $_SESSION['role'] = $role;
+$_SESSION['last_activity'] = time();
 
 
 // Clear temporary OTP information.

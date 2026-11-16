@@ -16,12 +16,12 @@ require_once __DIR__ . '/../php/mailer.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-// Keep these two in sync with login.php (same lockout).
+// Keep these lockout tiers in sync with login.php.
 const RS_MAX_ATTEMPTS     = 3;
-const RS_COOLDOWN_SECONDS = 10;
+const RS_LOCKOUT_TIERS    = [15, 30, 60];
 
 const RS_CAPTCHA_EXPIRY   = 300;
-const RS_OTP_LIFETIME     = 60;   // seconds
+const RS_OTP_LIFETIME     = 300;  // seconds
 const RS_OTP_MAX_ATTEMPTS = 3;
 const RS_OTP_LOCK_SECONDS = 60;
 const RS_RESEND_WAIT      = 60;
@@ -201,23 +201,26 @@ function lockRemaining(mysqli $conn, string $username, string $ip): int
         [$username, $ip]
     );
 
-    if (!$r || (int)$r['failed_attempts'] < RS_MAX_ATTEMPTS) {
+    $failedAttempts = (int)($r['failed_attempts'] ?? 0);
+
+    if (
+        !$r ||
+        $failedAttempts < RS_MAX_ATTEMPTS ||
+        $failedAttempts % RS_MAX_ATTEMPTS !== 0
+    ) {
         return 0;
     }
 
     $elapsed = (int)($r['seconds_since_fail'] ?? 0);
-
-    if ($elapsed < RS_COOLDOWN_SECONDS) {
-        return RS_COOLDOWN_SECONDS - $elapsed;
-    }
-
-    run(
-        $conn,
-        'UPDATE login_attempts SET failed_attempts = 0, last_failed_at = NULL
-         WHERE username = ? AND ip_address = ?',
-        'ss',
-        [$username, $ip]
+    $tier = min(
+        count(RS_LOCKOUT_TIERS) - 1,
+        intdiv($failedAttempts - 1, RS_MAX_ATTEMPTS)
     );
+    $cooldown = RS_LOCKOUT_TIERS[$tier];
+
+    if ($elapsed < $cooldown) {
+        return $cooldown - $elapsed;
+    }
 
     return 0;
 }
@@ -256,7 +259,7 @@ function recordFailure(mysqli $conn, string $username, string $ip, ?int $userId,
         );
     }
 
-    if ($count === RS_MAX_ATTEMPTS) {
+    if ($count % RS_MAX_ATTEMPTS === 0) {
         try {
             if (!sendOwnerLockoutAlert(RS_OWNER_EMAIL, 'reset', $username, $ip, $count, RS_MAX_ATTEMPTS)) {
                 error_log('Reset lockout alert email was not sent.');
@@ -277,12 +280,17 @@ function failAttempt(mysqli $conn, string $what): never
 
     $count = recordFailure($conn, $username, clientIp(), $userId, $what);
 
-    if ($count >= RS_MAX_ATTEMPTS) {
+    if ($count >= RS_MAX_ATTEMPTS && $count % RS_MAX_ATTEMPTS === 0) {
         clearFlow();
-        respondLocked(RS_COOLDOWN_SECONDS);
+        $tier = min(
+            count(RS_LOCKOUT_TIERS) - 1,
+            intdiv($count - 1, RS_MAX_ATTEMPTS)
+        );
+        respondLocked(RS_LOCKOUT_TIERS[$tier]);
     }
 
-    $remaining = RS_MAX_ATTEMPTS - $count;
+    $attemptsInTier = $count % RS_MAX_ATTEMPTS;
+    $remaining = RS_MAX_ATTEMPTS - $attemptsInTier;
 
     respond([
         'success' => false,
@@ -372,8 +380,8 @@ function actionStart(mysqli $conn): never
     $username = trim((string)($_POST['username'] ?? ''));
     $captcha  = strtoupper(trim((string)($_POST['captcha'] ?? '')));
 
-    if ($username === '' || mb_strlen($username) > 100) {
-        respond(['success' => false, 'message' => 'Please enter your username.']);
+    if (strlen($username) < 6 || strlen($username) > 20) {
+        respond(['success' => false, 'message' => 'Username must be between 6 and 20 characters.']);
     }
 
     $captchaHash    = $_SESSION['captcha_hash'] ?? null;
@@ -781,12 +789,8 @@ function actionResendOtp(mysqli $conn): never
 
 function passwordProblem(string $pw, string $username): ?string
 {
-    if (strlen($pw) < 10) {
-        return 'Password must be at least 10 characters.';
-    }
-
-    if (strlen($pw) > 72) {
-        return 'Password must be 72 characters or fewer.';
+    if (strlen($pw) < 8 || strlen($pw) > 64) {
+        return 'Password must be between 8 and 64 characters.';
     }
 
     if (!preg_match('/[a-z]/', $pw) || !preg_match('/[A-Z]/', $pw) ||

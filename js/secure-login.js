@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const loginMessage = document.getElementById('loginMessage');
     const loginButton = document.getElementById('loginSubmitButton');
+    const forgotPasswordLink = document.getElementById('forgotPasswordLink');
 
     const captchaImage = document.getElementById('captchaImage');
     const captchaInput = document.getElementById('loginCaptcha');
@@ -97,8 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         unlockOtpInputs();
         showMessage(otpMessage, '');
 
-        const expirationText =
-            authType === 'registration' ? '4 minutes' : '60 seconds';
+        const expirationText = '5 minutes';
 
         const purposeText =
             authType === 'registration'
@@ -217,6 +217,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (!result.success) {
+                if (result.forgotPasswordAvailable && forgotPasswordLink) {
+                    forgotPasswordLink.hidden = false;
+                }
+
                 // Show the failed login message.
                 showMessage(loginMessage, result.message, true);
 

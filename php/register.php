@@ -90,8 +90,8 @@ function validateName(string $value, string $field): ?string
         return "Three consecutive identical letters are not allowed in $field.";
     }
 
-    if (strlen($value) < 2 || strlen($value) > 21) {
-        return "$field must contain 2–21 characters.";
+    if (strlen($value) < 2 || strlen($value) > 50) {
+        return "$field must contain 2–50 characters.";
     }
 
     if (!preg_match('/^[A-Z][a-z]*(?: [A-Z][a-z]*)*$/', $value)) {
@@ -206,10 +206,10 @@ if ($username === '') {
 
     $errors['username'] = 'Username is required.';
 
-} elseif (!preg_match('/^[A-Za-z][A-Za-z0-9]{5,16}$/', $username)) {
+} elseif (!preg_match('/^[A-Za-z][A-Za-z0-9]{5,19}$/', $username)) {
 
     $errors['username'] =
-        'Username must contain 6–17 letters and numbers and start with a letter.';
+        'Username must contain 6–20 letters and numbers and start with a letter.';
 }
 
 
@@ -244,10 +244,10 @@ if ($password === '') {
 
     $errors['password'] = 'Password is required.';
 
-} elseif (strlen($password) < 9 || strlen($password) > 64) {
+} elseif (strlen($password) < 8 || strlen($password) > 64) {
 
     $errors['password'] =
-        'Password must be between 9 and 64 characters.';
+        'Password must be between 8 and 64 characters.';
 
 } else {
 
@@ -835,7 +835,7 @@ try {
     }
 
     $insertProfile->bind_param(
-        'sissssssssssi',
+        'sisssssssssssi',
         $idNumber,
         $userId,
         $firstName,
@@ -931,7 +931,7 @@ try {
 
     // ======================================
     // STORE OTP
-    // Four-minute expiration
+    // Five-minute expiration
     // ======================================
 
     $insertOtp = $conn->prepare(
@@ -945,7 +945,7 @@ try {
             created_at,
             locked_until
         ) VALUES (
-            ?, ?, DATE_ADD(NOW(), INTERVAL 4 MINUTE),
+            ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE),
             0, 0, NOW(), NOW(), NULL
         )'
     );
