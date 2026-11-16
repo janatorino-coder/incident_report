@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Incident Hub - Student Incident Report System. Report concerns safely and help build a safer school community.">
+
+    <title>Incident Hub | Student Incident Report System</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../style/style.css">
+</head>
+
+<body>
+
+<!-- ==================== HEADER ==================== -->
+
+<header class="site-header">
+    <div class="nav-wrap">
+
+        <a class="site-brand" href="#home" aria-label="Incident Hub home">
+            <span class="site-brand-mark">
+                <i class="fa-solid fa-shield-halved"></i>
+            </span>
+
+            <span class="site-brand-copy">
+                <strong>Incident Hub</strong>
+                <small>STUDENT INCIDENT REPORT SYSTEM</small>
+            </span>
+        </a>
+
+        <nav class="main-nav" aria-label="Main navigation">
+            <a class="nav-link active" href="#home">Home</a>
+            <a class="nav-link" href="#how-it-works">How it works</a>
+            <a class="nav-link" href="#privacy">Privacy &amp; safety</a>
+        </nav>
+
+        <div class="nav-actions">
+            <button type="button" class="nav-login" data-open-auth="login">
+                Log in
+            </button>
+
+            <button type="button" class="nav-register" data-open-auth="register">
+                Create account
+            </button>
+        </div>
+
+        <button
+            type="button"
+            class="mobile-menu-button"
+            id="mobileMenuButton"
+            aria-label="Open navigation"
+            aria-expanded="false"
+        >
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+    </div>
+
+    <nav class="mobile-nav" id="mobileNav" aria-label="Mobile navigation" hidden>
+        <a href="#home">Home</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#privacy">Privacy &amp; safety</a>
+
+        <button type="button" data-open-auth="login">Log in</button>
+        <button type="button" data-open-auth="register">Create account</button>
+    </nav>
+</header>
+
+
+<!-- ==================== MAIN CONTENT ==================== -->
+
+<main>
+
+    <!-- HERO SECTION -->
+
+    <section class="hero-section" id="home">
+
+        <div class="hero-copy">
+
+            <span class="eyebrow">
+                <span class="eyebrow-dot"></span>
+                A SAFER CAMPUS STARTS WITH ALL OF US
+            </span>
+
+            <h1>
+                Every report is a step toward a
+                <em>safer school.</em>
+            </h1>
+
+            <p class="hero-description">
+                Incident Hub gives students a simple and secure way to report
+                school concerns and follow their status. Your voice matters,
+                and every concern deserves attention.
+            </p>
+
+            <div class="hero-actions">
+
+                <button type="button" class="primary-cta" data-open-auth="register">
+                    Report a concern
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+
+                <a class="secondary-cta" href="#how-it-works">
+                    <span class="play-icon">
+                        <i class="fa-solid fa-arrow-down"></i>
+                    </span>
+                    See how it works
+                </a>
+
+            </div>
+
+            <div class="hero-assurance">
+
+                <span class="assurance-icon">
+                    <i class="fa-solid fa-lock"></i>
+                </span>
+
+                <span>
+                    <strong>Your information matters.</strong>
+                    <small>
+                        Reports are available to authorized school personnel.
+                    </small>
+                </span>
+
+            </div>
+
+        </div>
+
+        <div
+            class="hero-visual"
+            role="img"
+            aria-label="Caraga State University campus building"
+        >
+
+            <div class="visual-shade"></div>
+
+            <div class="visual-top-label">
+                <i class="fa-solid fa-location-dot"></i>
+                CARAGA STATE UNIVERSITY
+            </div>
+
+            <div class="visual-message">
+                <span class="visual-kicker">SPEAK UP. HELP OUT.</span>
+
+                <h2>Building a more supportive campus, together.</h2>
+
+                <p>
+                    Recognize a concern. Share the details.
+                    Help the school respond.
+                </p>
+            </div>
+
+            <div class="visual-stamp">
+                <i class="fa-solid fa-shield-heart"></i>
+                <span>Every report<br>matters</span>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- SYSTEM HIGHLIGHTS -->
+
+    <section class="value-strip" aria-label="System highlights">
+
+        <div class="value-item">
+            <span class="value-icon">
+                <i class="fa-solid fa-file-circle-plus"></i>
+            </span>
+
+            <span>
+                <strong>Easy reporting</strong>
+                <small>Submit a concern in a few steps.</small>
+            </span>
+        </div>
+
+        <div class="value-divider"></div>
+
+        <div class="value-item">
+            <span class="value-icon">
+                <i class="fa-solid fa-list-check"></i>
+            </span>
+
+            <span>
+                <strong>Status tracking</strong>
+                <small>See updates on your submitted reports.</small>
+            </span>
+        </div>
+
+        <div class="value-divider"></div>
+
+        <div class="value-item">
+            <span class="value-icon">
+                <i class="fa-solid fa-user-shield"></i>
+            </span>
+
+            <span>
+                <strong>Responsible access</strong>
+                <small>Information is handled by authorized staff.</small>
+            </span>
+        </div>
+
+    </section>
+
+
+    <!-- HOW IT WORKS -->
+
+    <section class="how-section" id="how-it-works">
+
+        <div class="section-heading">
+
+            <span class="eyebrow">A SIMPLE WAY TO SPEAK UP</span>
+
+            <h2>How Incident Hub works</h2>
+
+            <p>
+                From submitting a report to checking its progress,
+                the process is straightforward.
+            </p>
+
+        </div>
+
+        <div class="steps-grid">
+
+            <article class="step-card">
+                <span class="step-number">01</span>
+
+                <span class="step-icon">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </span>
+
+                <h3>Create your account</h3>
+
+                <p>
+                    Register using your account details, then log in
+                    to access the student portal.
+                </p>
+            </article>
+
+            <article class="step-card featured-step">
+                <span class="step-number">02</span>
+
+                <span class="step-icon">
+                    <i class="fa-solid fa-file-circle-plus"></i>
+                </span>
+
+                <h3>Submit a report</h3>
+
+                <p>
+                    Describe the incident, provide its location,
+                    and select the category and severity.
+                </p>
+            </article>
+
+            <article class="step-card">
+                <span class="step-number">03</span>
+
+                <span class="step-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </span>
+
+                <h3>Track the progress</h3>
+
+                <p>
+                    Check the status of your reports while
+                    authorized staff review and respond.
+                </p>
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- PRIVACY SECTION -->
+
+    <section class="privacy-section" id="privacy">
+
+        <div class="privacy-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+
+        <div class="privacy-copy">
+
+            <span class="eyebrow">SAFETY AND RESPONSIBILITY</span>
+
+            <h2>A report should be handled with care.</h2>
+
+            <p>
+                Incident Hub is designed to help the school receive
+                and manage student concerns. Report information should
+                only be accessed by authorized personnel and handled
+                responsibly throughout the response process.
+            </p>
+
+        </div>
+
+        <button type="button" class="privacy-cta" data-open-auth="register">
+            Get started
+            <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+    </section>
+
+</main>
+
+
+<!-- ==================== FOOTER ==================== -->
+
+<footer class="site-footer">
+
+    <a class="footer-brand" href="#home">
+        <i class="fa-solid fa-shield-halved"></i>
+        Incident Hub
+    </a>
+
+    <p>© 2026 Student Incident Report System. All rights reserved.</p>
+
+    <a href="#home">
+        Back to top
+        <i class="fa-solid fa-arrow-up"></i>
+    </a>
+
+</footer>
+
+
+<!-- ==================== AUTHENTICATION MODAL ==================== -->
+
+<div class="auth-modal" id="authModal" hidden>
+
+    <button
+        class="auth-backdrop"
+        type="button"
+        data-close-auth
+        aria-label="Close login and registration"
+    ></button>
+
+    <section
+        class="auth-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="authDialogTitle"
+    >
+
+        <button
+            type="button"
+            class="auth-close"
+            id="closeAuthButton"
+            aria-label="Close"
+        >
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <div class="auth-box" id="authBox">
+
+            <!-- WELCOME PANEL -->
+
+            <div class="welcome-panel">
+
+                <div class="welcome-content">
+
+                    <span class="welcome-icon">
+                        <i class="fa-solid fa-shield-heart"></i>
+                    </span>
+
+                    <span class="welcome-overline">INCIDENT HUB</span>
+
+                    <h2 id="welcomeHeading">Welcome!</h2>
+
+                    <p id="welcomeText">
+                        Create your account and be part of a safer
+                        school community.
+                    </p>
+
+                    <div class="tagline">Every Report Matters</div>
+
+                </div>
+
+                <span class="welcome-orbit orbit-one"></span>
+                <span class="welcome-orbit orbit-two"></span>
+
+            </div>
+
+
+            <!-- ==================== REGISTRATION FORM ==================== -->
+
+            <div class="form-panel register-panel">
+
+                <div class="form-heading">
+
+                    <span class="form-overline">JOIN THE COMMUNITY</span>
+
+                    <h2 id="authDialogTitle">Create account</h2>
+
+                    <p>Register to access the student portal.</p>
+
+                </div>
+
+                <form
+                    id="registerForm"
+                    action="../php/register.php"
+                    method="POST"
+                    novalidate
+                >
+
+                    <!-- STUDENT INFORMATION -->
+
+                    <h3 class="register-section-title">
+                        Student Information
+                    </h3>
+
+                    <div class="input-group">
+
+                        <label for="idNumber">
+                            Student ID Number <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="idNumber"
+                                name="id_number"
+                                placeholder="000-00000"
+                                maxlength="9"
+                                pattern="[0-9]{3}-[0-9]{5}"
+                                required
+                            >
+
+                            <i class="input-icon fa-solid fa-id-card"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="firstName">
+                            First Name <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="firstName"
+                                name="first_name"
+                                placeholder="Enter your first name"
+                                maxlength="21"
+                                autocomplete="given-name"
+                                required
+                            >
+
+                            <i class="input-icon fa-regular fa-user"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="middleName">
+                            Middle Name
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="middleName"
+                                name="middle_name"
+                                placeholder="Enter your middle name (optional)"
+                                maxlength="21"
+                                autocomplete="additional-name"
+                            >
+
+                            <i class="input-icon fa-regular fa-user"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="familyName">
+                            Family Name <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="familyName"
+                                name="family_name"
+                                placeholder="Enter your family name"
+                                maxlength="21"
+                                autocomplete="family-name"
+                                required
+                            >
+
+                            <i class="input-icon fa-regular fa-user"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="nameExtension">
+                            Name Extension
+                        </label>
+
+                        <div class="input-box">
+
+                            <select
+                                id="nameExtension"
+                                name="name_extension"
+                            >
+                                <option value="">None</option>
+                                <option value="Jr.">Jr.</option>
+                                <option value="Sr.">Sr.</option>
+                                <option value="Other">Other</option>
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="input-group"
+                        id="otherExtensionGroup"
+                        hidden
+                    >
+
+                        <label for="otherExtension">
+                            Other Name Extension <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <select
+                                id="otherExtension"
+                                name="other_extension"
+                            >
+                                <option value="">Select extension</option>
+                                <option value="I">I</option>
+                                <option value="II">II</option>
+                                <option value="III">III</option>
+                                <option value="IV">IV</option>
+                                <option value="IX">IX</option>
+                                <option value="X">X</option>
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="birthdate">
+                            Birthdate <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="date"
+                                id="birthdate"
+                                name="birthdate"
+                                required
+                            >
+
+                            <i class="input-icon fa-regular fa-calendar"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ADDRESS INFORMATION -->
+
+                    <h3 class="register-section-title">
+                        Address Information
+                    </h3>
+
+
+                    <div class="input-group">
+
+                        <label for="purokStreet">
+                            Purok / Street <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="purokStreet"
+                                name="purok_street"
+                                placeholder="Enter your purok or street"
+                                maxlength="50"
+                                required
+                            >
+
+                            <i class="input-icon fa-solid fa-location-dot"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="barangay">
+                            Barangay <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="barangay"
+                                name="barangay"
+                                placeholder="Enter your barangay"
+                                maxlength="50"
+                                required
+                            >
+
+                            <i class="input-icon fa-solid fa-location-dot"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="municipalityCity">
+                            Municipality / City <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="municipalityCity"
+                                name="municipality_city"
+                                placeholder="Enter your municipality or city"
+                                maxlength="50"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="province">
+                            Province <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="province"
+                                name="province"
+                                placeholder="Enter your province"
+                                maxlength="50"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="country">
+                            Country <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="country"
+                                name="country"
+                                placeholder="Enter your country"
+                                maxlength="50"
+                                value="Philippines"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="zipCode">
+                            ZIP Code <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="zipCode"
+                                name="zip_code"
+                                placeholder="0000"
+                                maxlength="4"
+                                inputmode="numeric"
+                                pattern="[0-9]{4}"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ACCOUNT INFORMATION -->
+
+                    <h3 class="register-section-title">
+                        Account Information
+                    </h3>
+
+
+                    <div class="input-group">
+
+                        <label for="username">
+                            Username <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="Enter your username"
+                                minlength="6"
+                                maxlength="17"
+                                autocomplete="username"
+                                required
+                            >
+
+                            <i class="input-icon fa-regular fa-user"></i>
+
+                        </div>
+
+                        <p class="error-msg" id="usernameError"></p>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="email">
+                            Email Address <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                placeholder="yourname@csucc.edu.ph"
+                                maxlength="100"
+                                autocomplete="email"
+                                required
+                            >
+
+                            <i class="input-icon fa-regular fa-envelope"></i>
+
+                        </div>
+
+                        <p class="error-msg" id="emailError"></p>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="password">
+                            Password <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Create a password"
+                                minlength="9"
+                                maxlength="64"
+                                autocomplete="new-password"
+                                required
+                            >
+
+                            <i
+                                class="input-icon toggle-password fa-regular fa-eye"
+                                role="button"
+                                tabindex="0"
+                                aria-label="Show password"
+                                onclick="togglePassword(this)"
+                            ></i>
+
+                        </div>
+
+                        <p class="error-msg" id="passwordError"></p>
+
+                    </div>
+
+                    <div class="password-strength" id="passwordStrength">
+                        <div class="strength-label">
+                            Password Strength: <span id="strengthText">Not entered</span>
+                        </div>
+
+                        <div class="strength-meter">
+                            <div class="strength-meter-fill" id="strengthBar"></div>
+                        </div>
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="confirmPassword">
+                            Confirm Password <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="password"
+                                id="confirmPassword"
+                                name="confirm_password"
+                                placeholder="Re-enter your password"
+                                minlength="9"
+                                maxlength="64"
+                                autocomplete="new-password"
+                                required
+                            >
+
+                            <i
+                                class="input-icon toggle-password fa-regular fa-eye"
+                                role="button"
+                                tabindex="0"
+                                aria-label="Show password"
+                                onclick="togglePassword(this)"
+                            ></i>
+
+                        </div>
+
+                        <p class="error-msg" id="confirmPasswordError"></p>
+
+                    </div>
+
+
+                    <!-- SECURITY QUESTIONS -->
+
+                    <h3 class="register-section-title">
+                        Security Questions
+                    </h3>
+
+                    <p class="register-help-text">
+                        These answers may be used to help verify your
+                        identity when recovering your account.
+                    </p>
+
+
+                    <div class="input-group">
+
+                        <label for="securityQ2">
+                            What was the name of your first pet?
+                            <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="securityQ2"
+                                name="security_answer_q2"
+                                placeholder="Enter your answer"
+                                minlength="2"
+                                maxlength="50"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="securityQ5">
+                            What street did you live on in Grade 1?
+                            <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="securityQ5"
+                                name="security_answer_q5"
+                                placeholder="Enter your answer"
+                                minlength="2"
+                                maxlength="50"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="securityQ7">
+                            What is your mother’s maiden first name?
+                            <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="securityQ7"
+                                name="security_answer_q7"
+                                placeholder="Enter your answer"
+                                minlength="2"
+                                maxlength="50"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- PRIVACY CONSENT -->
+
+                    <h3 class="register-section-title">
+                        Privacy and Consent
+                    </h3>
+
+                    <div class="privacy-consent-group">
+
+                        <label class="privacy-consent-label">
+
+                            <input
+                                type="checkbox"
+                                id="privacyConsent"
+                                name="privacy_consent"
+                                value="1"
+                                required
+                            >
+
+                            <span>
+                                I have read and agree to the
+
+                                <a
+                                    href="../php/privacy_notice.php"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Privacy Notice
+                                </a>.
+
+                                I understand how my personal information
+                                will be collected, used, and protected.
+
+                                <strong>*</strong>
+                            </span>
+
+                        </label>
+
+                    </div>
+
+
+                    <!-- REGISTRATION MESSAGE -->
+
+                    <p
+                        class="login-message"
+                        id="registerMessage"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
+
+
+                    <button
+                        type="submit"
+                        class="main-button"
+                        id="registerSubmitButton"
+                    >
+                        Create account
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+
+                </form>
+
+
+                <div class="switch-text">
+                    Already have an account?
+
+                    <button
+                        type="button"
+                        id="loginButton"
+                        class="switch-button"
+                    >
+                        Log in
+                    </button>
+                </div>
+
+            </div>
+
+
+            <!-- ==================== LOGIN FORM ==================== -->
+
+            <div class="form-panel login-panel">
+
+                <div class="form-heading">
+
+                    <span class="form-overline">WELCOME BACK</span>
+
+                    <h2>Log in</h2>
+
+                    <p>Enter your account details to continue.</p>
+
+                </div>
+
+
+                <form
+                    id="loginForm"
+                    action="../php/login.php"
+                    method="POST"
+                >
+
+                    <div class="input-group">
+
+                        <label for="loginUsername">
+                            Username <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="loginUsername"
+                                name="username"
+                                placeholder="Enter your username"
+                                autocomplete="username"
+                                required
+                            >
+
+                            <i class="input-icon fa-regular fa-user"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="input-group">
+
+                        <label for="loginPassword">
+                            Password <span>*</span>
+                        </label>
+
+                        <div class="input-box">
+
+                            <input
+                                type="password"
+                                id="loginPassword"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                            <i
+                                class="input-icon toggle-password fa-regular fa-eye"
+                                role="button"
+                                tabindex="0"
+                                aria-label="Show password"
+                                onclick="togglePassword(this)"
+                            ></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- CAPTCHA -->
+
+                    <div class="input-group">
+
+                        <label for="loginCaptcha">
+                            Security verification <span>*</span>
+                        </label>
+
+                        <div class="captcha-row">
+
+                            <img
+                                src="../php/captcha.php"
+                                id="captchaImage"
+                                alt="CAPTCHA verification code"
+                            >
+
+                            <button type="button" id="refreshCaptcha">
+                                <i class="fa-solid fa-rotate"></i>
+                                Refresh
+                            </button>
+
+                        </div>
+
+                        <div class="input-box">
+
+                            <input
+                                type="text"
+                                id="loginCaptcha"
+                                name="captcha"
+                                placeholder="Enter the code shown above"
+                                maxlength="5"
+                                autocomplete="off"
+                                autocapitalize="characters"
+                                spellcheck="false"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- REMEMBER ME AND FORGOT PASSWORD -->
+
+                    <div class="row">
+
+                        <label class="remember-label">
+                            <input type="checkbox" name="remember">
+                            Remember me
+                        </label>
+
+                        <a href="../forgot_pass/forgot_password.html">
+                            Forgot password?
+                        </a>
+
+                    </div>
+
+
+                    <p
+                        class="login-message"
+                        id="loginMessage"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
+
+
+                    <button
+                        type="submit"
+                        id="loginSubmitButton"
+                        class="main-button"
+                    >
+                        Log in
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+
+                </form>
+
+
+                <div class="switch-text">
+                    Don't have an account?
+
+                    <button
+                        type="button"
+                        id="registerButton"
+                        class="switch-button"
+                    >
+                        Create account
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<!-- ==================== OTP VERIFICATION MODAL ==================== -->
+
+<div class="otp-modal" id="otpModal" hidden>
+
+    <div class="otp-backdrop"></div>
+
+    <div class="otp-dialog" role="dialog" aria-modal="true">
+
+        <button
+            type="button"
+            class="otp-close"
+            id="otpClose"
+            aria-label="Close"
+        >
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+
+        <div class="otp-icon">
+            <i class="fa-solid fa-envelope-circle-check"></i>
+        </div>
+
+
+        <span class="form-overline">EMAIL VERIFICATION</span>
+
+        <h2>Verify your account</h2>
+
+
+        <p id="otpDescription">
+            Enter the six-digit code sent to your registered email address.
+        </p>
+
+
+        <form id="otpForm">
+
+            <div class="input-group">
+
+                <label for="otpCode">
+                    Verification code
+                </label>
+
+                <div class="input-box">
+
+                    <input
+                        type="text"
+                        id="otpCode"
+                        name="otp"
+                        placeholder="000000"
+                        maxlength="6"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        required
+                    >
+
+                    <i class="input-icon fa-solid fa-key"></i>
+
+                </div>
+
+            </div>
+
+
+            <p
+                class="login-message"
+                id="otpMessage"
+                role="status"
+                aria-live="polite"
+            ></p>
+
+
+            <button
+                type="submit"
+                class="main-button"
+                id="verifyOtpButton"
+            >
+                Verify and continue
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+
+        </form>
+
+
+        <button
+            type="button"
+            id="resendOtpButton"
+            class="switch-button"
+        >
+            Resend verification code
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- ==================== JAVASCRIPT FILES ==================== -->
+
+<script src="../js/torino.js"></script>
+<script src="../js/secure-login.js"></script>
+</body>
+</html>
