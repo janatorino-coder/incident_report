@@ -102,7 +102,7 @@ a { color: inherit; }
     overflow: hidden;
     border-radius: 26px;
     isolation: isolate;
-    background-image: url("school-hero.png");
+    background-image: url("../image/school-hero.png");
     background-size: cover;
     background-position: center;
     box-shadow: var(--shadow);
