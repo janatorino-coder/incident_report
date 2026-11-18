@@ -142,22 +142,28 @@ CREATE TABLE IF NOT EXISTS security_questions (
 );
  
  
--- 3. Reset OTP (same columns and rules as login_otp)
 CREATE TABLE IF NOT EXISTS password_reset_otp (
-    user_id INT NOT NULL PRIMARY KEY,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL UNIQUE,
     otp_hash VARCHAR(255) NOT NULL,
     expires_at DATETIME NOT NULL,
-    attempts TINYINT NOT NULL DEFAULT 0,
-    resend_count TINYINT NOT NULL DEFAULT 0,
+    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    resend_count TINYINT UNSIGNED NOT NULL DEFAULT 0,
     last_sent_at DATETIME NOT NULL,
-    locked_until DATETIME NULL DEFAULT NULL
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    locked_until DATETIME NULL,
+    CONSTRAINT fk_password_reset_otp_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
 );
- 
--- 4. Previous passwords, used to block reuse of the last 3
+
 CREATE TABLE IF NOT EXISTS password_history (
-    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNSIGNED NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_user (user_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_password_history_user_id (user_id, id),
+    CONSTRAINT fk_password_history_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE
 );
