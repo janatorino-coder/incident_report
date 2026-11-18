@@ -574,35 +574,30 @@ if ($zipCode === '') {
 // SECURITY QUESTIONS
 // ==========================================
 
-$answerQ2 = cleanSecurityAnswer(
-    (string)($_POST['security_answer_q2'] ?? '')
+$answer1 = cleanSecurityAnswer(
+    (string)($_POST['security_answer_1'] ?? '')
 );
 
-$answerQ5 = cleanSecurityAnswer(
-    (string)($_POST['security_answer_q5'] ?? '')
+$answer4 = cleanSecurityAnswer(
+    (string)($_POST['security_answer_4'] ?? '')
 );
 
-$answerQ7 = cleanSecurityAnswer(
-    (string)($_POST['security_answer_q7'] ?? '')
+$answer8 = cleanSecurityAnswer(
+    (string)($_POST['security_answer_8'] ?? '')
 );
 
-if ($answerQ2 === null) {
-
-    $errors['security_answer_q2'] =
+if ($answer1 === null) {
+    $errors['security_answer_1'] =
         'Answer must contain 2–50 letters and spaces only.';
-
 }
 
-if ($answerQ5 === null) {
-
-    $errors['security_answer_q5'] =
+if ($answer4 === null) {
+    $errors['security_answer_4'] =
         'Answer must contain 2–50 letters and spaces only.';
-
 }
 
-if ($answerQ7 === null) {
-
-    $errors['security_answer_q7'] =
+if ($answer8 === null) {
+    $errors['security_answer_8'] =
         'Answer must contain 2–50 letters and spaces only.';
 }
 
@@ -861,20 +856,20 @@ try {
     $insertProfile->close();
 
 
-    // ======================================
+    // ==========================================
     // HASH AND INSERT SECURITY ANSWERS
-    // ======================================
+    // ==========================================
 
     $securityAnswers = [
-        'Q2' => $answerQ2,
-        'Q5' => $answerQ5,
-        'Q7' => $answerQ7
+        '1' => $answer1,
+        '4' => $answer4,
+        '8' => $answer8
     ];
 
     $insertQuestion = $conn->prepare(
         'INSERT INTO student_security_questions
             (user_id, question_code, answer_hash)
-         VALUES (?, ?, ?)'
+        VALUES (?, ?, ?)'
     );
 
     if (!$insertQuestion) {
