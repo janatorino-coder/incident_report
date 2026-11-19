@@ -31,6 +31,11 @@ const RS_CHANGE_WINDOW = 600;
 
 const RS_OWNER_EMAIL = 'jana.torino@csucc.edu.ph';
 
+/*
+ * Question code-to-label mapping.
+ * Only questions actually registered by the student
+ * will be displayed.
+ */
 const RS_QUESTIONS = [
     '1' => 'What was the name of your first pet?',
     '4' => "What is your mother's maiden first name?",
@@ -61,7 +66,8 @@ function clearResetFlow(): void
         $_SESSION['reset_username'],
         $_SESSION['reset_ip'],
         $_SESSION['reset_started'],
-        $_SESSION['reset_verified_at']
+        $_SESSION['reset_verified_at'],
+        $_SESSION['reset_questions']
     );
 }
 
@@ -88,12 +94,18 @@ function requireStage(string $stage): void
     }
 }
 
-function query(mysqli $conn, string $sql, string $types = '', array $params = []): mysqli_stmt
-{
+function query(
+    mysqli $conn,
+    string $sql,
+    string $types = '',
+    array $params = []
+): mysqli_stmt {
     $stmt = $conn->prepare($sql);
 
     if (!$stmt) {
-        throw new RuntimeException('Database prepare failed: ' . $conn->error);
+        throw new RuntimeException(
+            'Database prepare failed: ' . $conn->error
+        );
     }
 
     if ($types !== '') {
@@ -103,14 +115,21 @@ function query(mysqli $conn, string $sql, string $types = '', array $params = []
     if (!$stmt->execute()) {
         $error = $stmt->error;
         $stmt->close();
-        throw new RuntimeException('Database execute failed: ' . $error);
+
+        throw new RuntimeException(
+            'Database execute failed: ' . $error
+        );
     }
 
     return $stmt;
 }
 
-function fetchRow(mysqli $conn, string $sql, string $types = '', array $params = []): ?array
-{
+function fetchRow(
+    mysqli $conn,
+    string $sql,
+    string $types = '',
+    array $params = []
+): ?array {
     $stmt = query($conn, $sql, $types, $params);
     $result = $stmt->get_result()->fetch_assoc();
     $stmt->close();
@@ -118,14 +137,19 @@ function fetchRow(mysqli $conn, string $sql, string $types = '', array $params =
     return $result ?: null;
 }
 
-function executeQuery(mysqli $conn, string $sql, string $types = '', array $params = []): void
-{
+function executeQuery(
+    mysqli $conn,
+    string $sql,
+    string $types = '',
+    array $params = []
+): void {
     query($conn, $sql, $types, $params)->close();
 }
 
 function normalizeAnswer(string $answer): string
 {
     $answer = mb_strtolower(trim($answer), 'UTF-8');
+
     return preg_replace('/\s+/u', ' ', $answer);
 }
 
@@ -134,7 +158,10 @@ function dummyHash(): string
     static $hash = null;
 
     if ($hash === null) {
-        $hash = password_hash('dummy-answer-value', PASSWORD_DEFAULT);
+        $hash = password_hash(
+            'dummy-answer-value',
+            PASSWORD_DEFAULT
+        );
     }
 
     return $hash;
@@ -156,12 +183,58 @@ function maskEmail(string $email): string
 }
 
 /* ---------------------------------------------------------
-   SHARED LOGIN LOCKOUT
-   Uses the existing login_attempts table.
+   REGISTERED SECURITY QUESTIONS
 --------------------------------------------------------- */
 
-function lockRemaining(mysqli $conn, string $username, string $ip): int
-{
+/**
+ * Return only the security questions registered by this user.
+ *
+ * Unknown users receive the same generic question choices
+ * so the API does not reveal whether an account exists.
+ */
+function getResetQuestions(
+    mysqli $conn,
+    int $userId
+): array {
+    if ($userId <= 0) {
+        return RS_QUESTIONS;
+    }
+
+    $stmt = query(
+        $conn,
+        'SELECT question_code
+         FROM student_security_questions
+         WHERE user_id = ?
+         ORDER BY question_code ASC',
+        'i',
+        [$userId]
+    );
+
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+
+    $questions = [];
+
+    foreach ($rows as $row) {
+        $code = (string)$row['question_code'];
+
+        if (isset(RS_QUESTIONS[$code])) {
+            $questions[$code] = RS_QUESTIONS[$code];
+        }
+    }
+
+    return $questions;
+}
+
+/* ---------------------------------------------------------
+   SHARED LOGIN LOCKOUT
+--------------------------------------------------------- */
+
+function lockRemaining(
+    mysqli $conn,
+    string $username,
+    string $ip
+): int {
     $record = fetchRow(
         $conn,
         'SELECT failed_attempts,
@@ -179,7 +252,10 @@ function lockRemaining(mysqli $conn, string $username, string $ip): int
 
     $count = (int)$record['failed_attempts'];
 
-    if ($count < RS_MAX_ATTEMPTS || $count % RS_MAX_ATTEMPTS !== 0) {
+    if (
+        $count < RS_MAX_ATTEMPTS ||
+        $count % RS_MAX_ATTEMPTS !== 0
+    ) {
         return 0;
     }
 
@@ -247,7 +323,9 @@ function recordFailure(
                 RS_MAX_ATTEMPTS
             );
         } catch (Throwable $e) {
-            error_log('Reset lockout email error: ' . $e->getMessage());
+            error_log(
+                'Reset lockout email error: ' . $e->getMessage()
+            );
         }
     }
 
@@ -266,7 +344,10 @@ function failSecurityAnswer(mysqli $conn): never
         $userId > 0 ? $userId : null
     );
 
-    if ($count >= RS_MAX_ATTEMPTS && $count % RS_MAX_ATTEMPTS === 0) {
+    if (
+        $count >= RS_MAX_ATTEMPTS &&
+        $count % RS_MAX_ATTEMPTS === 0
+    ) {
         $tier = min(
             count(RS_LOCKOUT_TIERS) - 1,
             intdiv($count - 1, RS_MAX_ATTEMPTS)
@@ -320,7 +401,7 @@ function currentState(mysqli $conn): array
         return [
             'success' => true,
             'stage' => 'questions',
-            'questions' => RS_QUESTIONS
+            'questions' => $_SESSION['reset_questions'] ?? RS_QUESTIONS
         ];
     }
 
@@ -410,7 +491,10 @@ function actionStart(mysqli $conn): never
     $captchaHash = $_SESSION['captcha_hash'] ?? null;
     $captchaCreated = (int)($_SESSION['captcha_created'] ?? 0);
 
-    unset($_SESSION['captcha_hash'], $_SESSION['captcha_created']);
+    unset(
+        $_SESSION['captcha_hash'],
+        $_SESSION['captcha_created']
+    );
 
     if (
         !$captchaHash ||
@@ -440,20 +524,29 @@ function actionStart(mysqli $conn): never
         ]);
     }
 
+    /*
+     * Password recovery is for student accounts.
+     * An unknown username and a non-student account
+     * receive the same generic response.
+     */
     $user = fetchRow(
         $conn,
-        'SELECT id FROM users WHERE username = ? LIMIT 1',
+        'SELECT id
+         FROM users
+         WHERE username = ? AND role = "student"
+         LIMIT 1',
         's',
         [$username]
     );
 
-    /*
-     * Unknown usernames are assigned user_id = 0.
-     * The same three question choices are displayed either way.
-     * An unknown username can never pass answer verification.
-     */
     $userId = $user ? (int)$user['id'] : 0;
 
+    $questions = getResetQuestions($conn, $userId);
+
+    /*
+     * Store the permitted question codes in the session.
+     * The answer endpoint will validate against this list.
+     */
     session_regenerate_id(true);
 
     $_SESSION['reset_stage'] = 'questions';
@@ -461,17 +554,18 @@ function actionStart(mysqli $conn): never
     $_SESSION['reset_username'] = $username;
     $_SESSION['reset_ip'] = $ip;
     $_SESSION['reset_started'] = time();
+    $_SESSION['reset_questions'] = $questions;
 
     respond([
         'success' => true,
         'stage' => 'questions',
-        'questions' => RS_QUESTIONS,
+        'questions' => $questions,
         'refreshCaptcha' => true
     ]);
 }
 
 /* ---------------------------------------------------------
-   STEP 2: SELECTED SECURITY QUESTION + ANSWERS
+   STEP 2: SECURITY QUESTION + ANSWERS
 --------------------------------------------------------- */
 
 function actionAnswer(mysqli $conn): never
@@ -499,9 +593,16 @@ function actionAnswer(mysqli $conn): never
 
     $code = trim((string)($_POST['question_code'] ?? ''));
     $answer = normalizeAnswer((string)($_POST['answer'] ?? ''));
-    $confirmAnswer = normalizeAnswer((string)($_POST['confirm_answer'] ?? ''));
+    $confirmAnswer = normalizeAnswer(
+        (string)($_POST['confirm_answer'] ?? '')
+    );
 
-    if (!array_key_exists($code, RS_QUESTIONS)) {
+    $allowedQuestions = $_SESSION['reset_questions'] ?? [];
+
+    if (
+        !is_array($allowedQuestions) ||
+        !array_key_exists($code, $allowedQuestions)
+    ) {
         respond([
             'success' => false,
             'message' => 'Please select a valid security question.'
@@ -515,6 +616,10 @@ function actionAnswer(mysqli $conn): never
         ]);
     }
 
+    /*
+     * Check that both answers match BEFORE checking
+     * the saved security answer.
+     */
     if (!hash_equals($answer, $confirmAnswer)) {
         respond([
             'success' => false,
@@ -549,7 +654,10 @@ function actionAnswer(mysqli $conn): never
 
     $user = fetchRow(
         $conn,
-        'SELECT email FROM users WHERE id = ? LIMIT 1',
+        'SELECT email
+         FROM users
+         WHERE id = ? AND role = "student"
+         LIMIT 1',
         'i',
         [$userId]
     );
@@ -566,9 +674,6 @@ function actionAnswer(mysqli $conn): never
     $otp = (string)random_int(100000, 999999);
     $otpHash = password_hash($otp, PASSWORD_DEFAULT);
 
-    /*
-     * Store reset OTP separately from login_otp.
-     */
     executeQuery(
         $conn,
         'INSERT INTO password_reset_otp
@@ -658,7 +763,9 @@ function actionVerifyOtp(mysqli $conn): never
     );
 
     if (!$record) {
-        restartFlow('Your verification code is no longer available. Please start again.');
+        restartFlow(
+            'Your verification code is no longer available. Please start again.'
+        );
     }
 
     if ((int)$record['is_locked']) {
@@ -691,6 +798,7 @@ function actionVerifyOtp(mysqli $conn): never
 
     if (!password_verify($otp, (string)$record['otp_hash'])) {
         $attempts = (int)$record['attempts'] + 1;
+
         $lockedUntil = $attempts >= RS_OTP_MAX_ATTEMPTS
             ? 'DATE_ADD(NOW(), INTERVAL ' . RS_OTP_LOCK_SECONDS . ' SECOND)'
             : 'NULL';
@@ -726,7 +834,9 @@ function actionVerifyOtp(mysqli $conn): never
                     RS_OTP_MAX_ATTEMPTS
                 );
             } catch (Throwable $e) {
-                error_log('Reset OTP lockout email error: ' . $e->getMessage());
+                error_log(
+                    'Reset OTP lockout email error: ' . $e->getMessage()
+                );
             }
 
             respond([
@@ -749,7 +859,7 @@ function actionVerifyOtp(mysqli $conn): never
 
     /*
      * Consume the OTP after successful verification.
-     * The verified session is now the authorization to change the password.
+     * It cannot be used again.
      */
     executeQuery(
         $conn,
@@ -817,7 +927,9 @@ function actionResendOtp(mysqli $conn): never
     }
 
     if ((int)$record['resend_count'] >= RS_RESEND_MAX) {
-        restartFlow('You have reached the maximum number of resend requests. Please start again.');
+        restartFlow(
+            'You have reached the maximum number of resend requests. Please start again.'
+        );
     }
 
     $elapsed = max(0, (int)$record['elapsed']);
@@ -866,10 +978,13 @@ function actionResendOtp(mysqli $conn): never
 
 /* ---------------------------------------------------------
    PASSWORD VALIDATION
+   Matches registration password rules.
 --------------------------------------------------------- */
 
-function passwordProblem(string $password, string $username): ?string
-{
+function passwordProblem(
+    string $password,
+    string $username
+): ?string {
     $length = strlen($password);
 
     if ($length < 8 || $length > 64) {
@@ -878,16 +993,30 @@ function passwordProblem(string $password, string $username): ?string
 
     $score = 0;
 
-    if (preg_match('/[a-z]/', $password)) $score++;
-    if (preg_match('/[A-Z]/', $password)) $score++;
-    if (preg_match('/\d/', $password)) $score++;
-    if (preg_match('/[^A-Za-z0-9]/', $password)) $score++;
-
-    if ($score < 3) {
-        return 'Password must contain at least 3 of the following: lowercase letter, uppercase letter, number, and special character.';
+    if (preg_match('/[a-z]/', $password)) {
+        $score++;
     }
 
-    if ($username !== '' && stripos($password, $username) !== false) {
+    if (preg_match('/[A-Z]/', $password)) {
+        $score++;
+    }
+
+    if (preg_match('/[0-9]/', $password)) {
+        $score++;
+    }
+
+    if (preg_match('/[^A-Za-z0-9]/', $password)) {
+        $score++;
+    }
+
+    if ($score < 3) {
+        return 'Your password is too weak. Use at least 3 character types.';
+    }
+
+    if (
+        $username !== '' &&
+        stripos($password, $username) !== false
+    ) {
         return 'Password must not contain your username.';
     }
 
@@ -906,7 +1035,9 @@ function actionChange(mysqli $conn): never
         time() - (int)($_SESSION['reset_verified_at'] ?? 0)
         > RS_CHANGE_WINDOW
     ) {
-        restartFlow('Your verification has expired. Please start again.');
+        restartFlow(
+            'Your verification has expired. Please start again.'
+        );
     }
 
     $userId = (int)$_SESSION['reset_user_id'];
@@ -932,61 +1063,80 @@ function actionChange(mysqli $conn): never
         ]);
     }
 
-    $user = fetchRow(
-        $conn,
-        'SELECT password, email FROM users WHERE id = ? LIMIT 1',
-        'i',
-        [$userId]
-    );
-
-    if (!$user) {
-        restartFlow('Account not found. Please start again.');
-    }
-
-    /*
-     * Check the current password and the two most recent historical
-     * passwords. Together these represent the last three passwords.
-     */
-    $blockedHashes = [(string)$user['password']];
-
-    $stmt = query(
-        $conn,
-        'SELECT password_hash
-         FROM password_history
-         WHERE user_id = ?
-         ORDER BY id DESC
-         LIMIT 2',
-        'i',
-        [$userId]
-    );
-
-    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $history) {
-        $blockedHashes[] = (string)$history['password_hash'];
-    }
-
-    $stmt->close();
-
-    foreach ($blockedHashes as $oldHash) {
-        if ($oldHash !== '' && password_verify($newPassword, $oldHash)) {
-            respond([
-                'success' => false,
-                'message' => 'You cannot reuse a recent password.'
-            ]);
-        }
-    }
-
-    $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-
-    /*
-     * Save the previous current password, update the new password,
-     * and clear the shared login failure counter in one transaction.
-     */
     $conn->begin_transaction();
 
     try {
+        /*
+         * Lock the user row while checking and changing
+         * the password.
+         */
+        $user = fetchRow(
+            $conn,
+            'SELECT password, email
+             FROM users
+             WHERE id = ? AND role = "student"
+             LIMIT 1
+             FOR UPDATE',
+            'i',
+            [$userId]
+        );
+
+        if (!$user) {
+            throw new RuntimeException('Reset account unavailable.');
+        }
+
+        /*
+         * Current password + two previous password hashes
+         * represent the last three passwords.
+         */
+        $blockedHashes = [
+            (string)$user['password']
+        ];
+
+        $stmt = query(
+            $conn,
+            'SELECT password_hash
+             FROM password_history
+             WHERE user_id = ?
+             ORDER BY id DESC
+             LIMIT 2',
+            'i',
+            [$userId]
+        );
+
+        $historyRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+
+        foreach ($historyRows as $history) {
+            $blockedHashes[] = (string)$history['password_hash'];
+        }
+
+        foreach ($blockedHashes as $oldHash) {
+            if (
+                $oldHash !== '' &&
+                password_verify($newPassword, $oldHash)
+            ) {
+                $conn->rollback();
+
+                respond([
+                    'success' => false,
+                    'message' => 'You cannot reuse a recent password.'
+                ]);
+            }
+        }
+
+        $newHash = password_hash(
+            $newPassword,
+            PASSWORD_DEFAULT
+        );
+
+        /*
+         * Save the old password before updating it.
+         */
         executeQuery(
             $conn,
-            'INSERT INTO password_history (user_id, password_hash)
+            'INSERT INTO password_history
+                (user_id, password_hash)
              VALUES (?, ?)',
             'is',
             [$userId, (string)$user['password']]
@@ -994,19 +1144,16 @@ function actionChange(mysqli $conn): never
 
         executeQuery(
             $conn,
-            'UPDATE users SET password = ? WHERE id = ?',
+            'UPDATE users
+             SET password = ?
+             WHERE id = ?',
             'si',
             [$newHash, $userId]
         );
 
-        executeQuery(
-            $conn,
-            'DELETE FROM login_attempts WHERE username = ?',
-            's',
-            [$username]
-        );
-
-        // Remove older history; keep only the two previous passwords.
+        /*
+         * Keep only the two most recent old passwords.
+         */
         executeQuery(
             $conn,
             'DELETE FROM password_history
@@ -1024,12 +1171,44 @@ function actionChange(mysqli $conn): never
             [$userId, $userId]
         );
 
+        executeQuery(
+            $conn,
+            'DELETE FROM login_attempts
+             WHERE username = ?',
+            's',
+            [$username]
+        );
+
+        /*
+         * Ensure any remaining reset OTP is invalidated.
+         */
+        executeQuery(
+            $conn,
+            'DELETE FROM password_reset_otp
+             WHERE user_id = ?',
+            'i',
+            [$userId]
+        );
+
         $conn->commit();
 
     } catch (Throwable $e) {
-        $conn->rollback();
+        if ($conn->errno === 0) {
+            // The transaction may already have been rolled back.
+        }
 
-        error_log('Forgot password update error: ' . $e->getMessage());
+        try {
+            $conn->rollback();
+        } catch (Throwable $rollbackError) {
+            error_log(
+                'Password reset rollback error: '
+                . $rollbackError->getMessage()
+            );
+        }
+
+        error_log(
+            'Forgot password update error: ' . $e->getMessage()
+        );
 
         respond([
             'success' => false,
@@ -1048,13 +1227,27 @@ function actionChange(mysqli $conn): never
     );
 
     try {
-        if (!sendPasswordChangedNotice((string)$user['email'], $username)) {
-            error_log('Password changed notification email was not sent.');
+        if (
+            !sendPasswordChangedNotice(
+                (string)$user['email'],
+                $username
+            )
+        ) {
+            error_log(
+                'Password changed notification email was not sent.'
+            );
         }
     } catch (Throwable $e) {
-        error_log('Password changed notification error: ' . $e->getMessage());
+        error_log(
+            'Password changed notification error: '
+            . $e->getMessage()
+        );
     }
 
+    /*
+     * Clear authorization after a successful password change.
+     * Reloading or going back cannot reuse this reset session.
+     */
     clearResetFlow();
 
     respond([
@@ -1113,7 +1306,9 @@ try {
     }
 
 } catch (Throwable $e) {
-    error_log('Forgot password API error: ' . $e->getMessage());
+    error_log(
+        'Forgot password API error: ' . $e->getMessage()
+    );
 
     respond([
         'success' => false,
