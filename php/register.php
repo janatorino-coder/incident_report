@@ -126,23 +126,32 @@ function cleanAddressName(
 }
 
 
+
 // ==========================================
 // SECURITY ANSWER VALIDATION
 // ==========================================
+
+
 
 function cleanSecurityAnswer(string $value): ?string
 {
     $value = trim($value);
 
+    // Normalize consecutive spaces.
+    $value = preg_replace('/\s+/u', ' ', $value);
+
     if (
-        strlen($value) < 2 ||
-        strlen($value) > 50 ||
-        !preg_match('/^[A-Za-z]+(?: [A-Za-z]+)*$/', $value)
+        mb_strlen($value, 'UTF-8') < 2 ||
+        mb_strlen($value, 'UTF-8') > 50 ||
+        !preg_match(
+            "/^[\p{L}\p{M}]+(?:[ '\x{2019}-][\p{L}\p{M}]+)*$/u",
+            $value
+        )
     ) {
         return null;
     }
 
-    return strtolower($value);
+    return mb_strtolower($value, 'UTF-8');
 }
 
 
@@ -588,17 +597,17 @@ $answer8 = cleanSecurityAnswer(
 
 if ($answer1 === null) {
     $errors['security_answer_1'] =
-        'Answer must contain 2–50 letters and spaces only.';
+        'Answer must contain 2–50 letters, spaces, apostrophes, or hyphens only.';
 }
 
 if ($answer4 === null) {
     $errors['security_answer_4'] =
-        'Answer must contain 2–50 letters and spaces only.';
+        'Answer must contain 2–50 letters, spaces, apostrophes, or hyphens only.';
 }
 
 if ($answer8 === null) {
     $errors['security_answer_8'] =
-        'Answer must contain 2–50 letters and spaces only.';
+        'Answer must contain 2–50 letters, spaces, apostrophes, or hyphens only.';
 }
 
 

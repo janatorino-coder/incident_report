@@ -624,23 +624,24 @@ function validateSecurityAnswer(name, label) {
 }
 
 
+
 function validateSecurityQuestions() {
-    const q2 = validateSecurityAnswer(
-        "security_answer_q2",
+    const q1 = validateSecurityAnswer(
+        "security_answer_1",
         "Security answer"
     );
 
-    const q5 = validateSecurityAnswer(
-        "security_answer_q5",
+    const q4 = validateSecurityAnswer(
+        "security_answer_4",
         "Security answer"
     );
 
-    const q7 = validateSecurityAnswer(
-        "security_answer_q7",
+    const q8 = validateSecurityAnswer(
+        "security_answer_8",
         "Security answer"
     );
 
-    return q2 && q5 && q7;
+    return q1 && q4 && q8;
 }
 
 
@@ -1122,7 +1123,28 @@ document.addEventListener("DOMContentLoaded", () => {
         // All invalid fields will show their errors together.
         const isValid = validateForm();
 
+        console.log("Registration submit event triggered.");
+        console.log("Validation result:", isValid);
+
+        console.table(
+            Array.from(registerForm.elements)
+                .filter(field => field.name)
+                .map(field => ({
+                    name: field.name,
+                    value: field.type === "password"
+                        ? "[HIDDEN]"
+                        : field.type === "checkbox"
+                            ? field.checked
+                            : field.value,
+                    valid: field.validity.valid
+                }))
+        );
+
         if (!isValid) {
+            console.log(
+                "Registration stopped because validation failed."
+            );
+
             const firstInvalid = registerForm.querySelector(
                 '.input-error:not([type="checkbox"])'
             );
@@ -1130,6 +1152,12 @@ document.addEventListener("DOMContentLoaded", () => {
             firstInvalid?.focus({
                 preventScroll: false
             });
+
+            showFormMessage(
+                registerMessage,
+                "Please correct the highlighted fields.",
+                "error"
+            );
 
             return;
         }
