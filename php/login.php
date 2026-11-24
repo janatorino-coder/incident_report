@@ -4,6 +4,7 @@ session_start();
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/activity_logger.php';
 
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_TIERS = [15, 30, 60];
@@ -26,10 +27,10 @@ function ipLoginLockout(mysqli $conn, string $ip): array
     $stmt = $conn->prepare(
         "SELECT COUNT(*) AS failures,
                 TIMESTAMPDIFF(SECOND, MIN(created_at), NOW()) AS oldest_age
-         FROM security_events
-         WHERE ip_address = ?
-           AND event_type = 'failed_login'
-           AND created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)"
+        FROM activity_logs
+        WHERE ip_address = ?
+        AND event_type = 'LOGIN_FAILED'
+        AND created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)"
     );
 
     if (!$stmt) {
@@ -324,7 +325,17 @@ if (!$valid) {
             MAX_ATTEMPTS
         );
 
-        if (!$emailSent) {
+        if ($emailSent) {
+            logActivity(
+                $conn,
+                $knownUserId,
+                $username,
+                'Lockout alert email sent',
+                "Login lockout alert sent after {$newCount} failed attempts.",
+                $ip,
+                'ALERT_EMAIL_SENT'
+            );
+        } else {
             error_log('Login lockout alert email was not sent.');
         }
     }
@@ -465,6 +476,16 @@ $insert->close();
 
 if (!sendLoginOTP($email, $otp)) {
 
+    logActivity(
+        $conn,
+        $userId,
+        (string)$user['username'],
+        'Login OTP sent',
+        'Login verification OTP successfully sent.',
+        $ip,
+        'OTP_SENT'
+    );
+
     $delete = $conn->prepare(
         'DELETE FROM login_otp WHERE user_id = ?'
     );
@@ -531,6 +552,7 @@ loginResponse(
 // ACTIVITY AND SECURITY LOGGING
 // ==========================================
 
+
 function logFailedLogin(
     mysqli $conn,
     string $username,
@@ -539,50 +561,16 @@ function logFailedLogin(
     int $attemptCount
 ): void {
 
-    $details = "Incorrect password. IP: {$ip}. Failed attempts: {$attemptCount}/" . MAX_ATTEMPTS;
+    $details = "Incorrect password. Failed attempts: {$attemptCount}/" . MAX_ATTEMPTS;
 
-    // Write to activity_logs.
-    $activity = $conn->prepare(
-        'INSERT INTO activity_logs
-            (user_id, actor_name, action, details)
-         VALUES (?, ?, ?, ?)'
+    logActivity(
+        $conn,
+        $userId,
+        $username,
+        'Failed login',
+        $details,
+        $ip,
+        'LOGIN_FAILED'
     );
-
-    if ($activity) {
-        $action = 'Failed login';
-
-        $activity->bind_param(
-            'isss',
-            $userId,
-            $username,
-            $action,
-            $details
-        );
-
-        $activity->execute();
-        $activity->close();
-    }
-
-    // Write to security_events.
-    $security = $conn->prepare(
-        'INSERT INTO security_events
-            (user_id, username, ip_address, event_type, details)
-         VALUES (?, ?, ?, ?, ?)'
-    );
-
-    if ($security) {
-        $eventType = 'failed_login';
-
-        $security->bind_param(
-            'issss',
-            $userId,
-            $username,
-            $ip,
-            $eventType,
-            $details
-        );
-
-        $security->execute();
-        $security->close();
-    }
 }
+

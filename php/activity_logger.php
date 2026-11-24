@@ -1,3 +1,4 @@
+
 <?php
 
 function logActivity(
@@ -7,64 +8,58 @@ function logActivity(
     string $action,
     string $details = '',
     string $ip = 'unknown',
-    string $eventType = 'system_activity'
+    string $eventType = 'SYSTEM_ACTIVITY'
 ): void {
 
-    // Record in activity_logs
-    $activity = $conn->prepare(
+    // Get the user's IP address if one was not supplied.
+    if ($ip === 'unknown') {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    }
+
+    // Get the browser or device information.
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+    // Keep values within the database column limits.
+    $eventType = substr($eventType, 0, 50);
+    $actorName = substr($actorName, 0, 100);
+    $ip = substr($ip, 0, 45);
+    $userAgent = substr($userAgent, 0, 255);
+
+    // Preserve the action description and additional details.
+    $logDetails = $action;
+
+    if ($details !== '') {
+        $logDetails .= ' - ' . $details;
+    }
+
+    $logDetails = substr($logDetails, 0, 255);
+
+    // Insert the activity/security event into one table only.
+    $stmt = $conn->prepare(
         'INSERT INTO activity_logs
-            (user_id, actor_name, action, details)
-         VALUES (?, ?, ?, ?)'
+            (event_type, username_typed, user_id, ip_address,
+             user_agent, details)
+         VALUES (?, ?, ?, ?, ?, ?)'
     );
 
-    if (!$activity) {
+    if (!$stmt) {
         error_log('Activity log prepare failed: ' . $conn->error);
         return;
     }
 
-    $activity->bind_param(
-        'isss',
-        $userId,
-        $actorName,
-        $action,
-        $details
-    );
-
-    if (!$activity->execute()) {
-        error_log('Activity log insert failed: ' . $activity->error);
-        $activity->close();
-        return;
-    }
-
-    $activityId = $conn->insert_id;
-    $activity->close();
-
-    // Also record the same activity in security_events
-    $security = $conn->prepare(
-        'INSERT INTO security_events
-            (activity_log_id, user_id, username, ip_address,
-             event_type, details)
-         VALUES (?, ?, ?, ?, ?, ?)'
-    );
-
-    if (!$security) {
-        error_log('Security event prepare failed: ' . $conn->error);
-        return;
-    }
-
-    $security->bind_param(
-        'iissss',
-        $activityId,
-        $userId,
-        $actorName,
-        $ip,
+    $stmt->bind_param(
+        'ssisss',
         $eventType,
-        $details
+        $actorName,
+        $userId,
+        $ip,
+        $userAgent,
+        $logDetails
     );
 
-    if (!$security->execute()) {
-        error_log('Security event insert failed: ' . $security->error);
+    if (!$stmt->execute()) {
+        error_log('Activity log insert failed: ' . $stmt->error);
     }
 
-    $security->close();
+    $stmt->close();
 }
