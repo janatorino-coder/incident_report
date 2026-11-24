@@ -308,10 +308,10 @@ if ($idNumber === '') {
 
     $errors['id_number'] = 'Student ID Number is required.';
 
-} elseif (!preg_match('/^[0-9]{3}-[0-9]{5}$/', $idNumber)) {
+} elseif (!preg_match('/^[0-9]{4}-[0-9]{4}$/', $idNumber)) {
 
     $errors['id_number'] =
-        'ID Number must follow the format xxx-xxxxx.';
+        'ID Number must follow the format xxxx-xxxx.';
 }
 
 

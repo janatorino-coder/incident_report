@@ -814,9 +814,8 @@ $hasHourlyFailures = $maxHourlyFailures > 0;
                         <div class="panel-head"><div><h4>Failed log-ins per hour — last 24 hours</h4><p>Each bar represents one hour</p></div></div>
                         <?php if (!$activityLogsReady): ?>
                             <div class="security-empty">Activity log table is not available.</div>
-                        <?php elseif (!$hasHourlyFailures): ?>
-                            <div class="security-empty">No failed log-ins recorded in the last 24 hours.</div>
                         <?php else: ?>
+                            <?php if (!$hasHourlyFailures): ?><p class="security-chart-note">No failed log-ins recorded in the last 24 hours.</p><?php endif; ?>
                             <div class="hourly-chart" role="img" aria-label="Failed log-ins per hour for the last 24 hours">
                                 <?php foreach ($hourlyFailures as $index => $failures): $barHeight = $failures > 0 ? max(5, (int)round(($failures / $maxHourlyFailures) * 100)) : 0; ?>
                                     <span class="hourly-bar-wrap" title="<?= h($hourlyLabels[$index] . " — " . $failures . " failed log-ins") ?>"><span class="hourly-bar <?= $failures === $maxHourlyFailures && $failures > 0 ? "peak" : "" ?>" style="height: <?= $barHeight ?>%"></span></span>

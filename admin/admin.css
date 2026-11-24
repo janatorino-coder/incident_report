@@ -1069,6 +1069,8 @@ html, body { height:100%; margin:0; }
 .security-stat-grid .stat-card {
     min-width: 0;
     padding: 14px 12px;
+    border-radius: 9px;
+    box-shadow: 0 1px 3px rgba(27, 49, 73, 0.035);
 }
 .security-stat-label {
     min-height: 32px;
@@ -1098,6 +1100,8 @@ html, body { height:100%; margin:0; }
 .security-panel {
     min-width: 0;
     padding: 16px;
+    border-radius: 9px;
+    box-shadow: 0 1px 4px rgba(27, 49, 73, 0.035);
 }
 .security-panel .panel-head {
     margin-bottom: 12px;
@@ -1115,6 +1119,11 @@ html, body { height:100%; margin:0; }
     gap: 4px;
     border-bottom: 1px solid var(--border);
 }
+.security-chart-note {
+    margin: -4px 0 8px;
+    color: var(--muted);
+    font-size: 10px;
+}
 .hourly-bar-wrap {
     display: flex;
     height: 100%;
@@ -1123,6 +1132,7 @@ html, body { height:100%; margin:0; }
     align-items: flex-end;
 }
 .hourly-bar {
+    display: block;
     width: 100%;
     min-height: 0;
     border-radius: 3px 3px 0 0;
@@ -1217,6 +1227,8 @@ html, body { height:100%; margin:0; }
 }
 .security-events-panel {
     padding: 16px;
+    border-radius: 9px;
+    box-shadow: 0 1px 4px rgba(27, 49, 73, 0.035);
 }
 .activity-filter-bar {
     display: grid;

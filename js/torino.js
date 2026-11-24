@@ -253,7 +253,7 @@ function getAge(birthdate) {
 
 // ==========================================
 // STUDENT ID VALIDATION
-// Format: xxx-xxxxx
+// Format: xxxx-xxxx
 // ==========================================
 
 function validateStudentId() {
@@ -263,8 +263,8 @@ function validateStudentId() {
 
     if (!value) {
         error = "Student ID Number is required.";
-    } else if (!/^\d{3}-\d{5}$/.test(value)) {
-        error = "Student ID Number must follow the format xxx-xxxxx.";
+    } else if (!/^\d{4}-\d{4}$/.test(value)) {
+        error = "Student ID Number must follow the format xxxx-xxxx.";
     }
 
     setRegistrationFieldError("id_number", error);
@@ -886,7 +886,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // ==========================================
     // ID NUMBER FORMATTING
-    // Format: xxx-xxxxx
+    // Format: xxxx-xxxx
     // ==========================================
 
     const idNumberInput = document.getElementById("idNumber");
@@ -897,11 +897,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 .replace(/\D/g, "")
                 .slice(0, 8);
 
-            if (value.length > 3) {
+            if (value.length > 4) {
                 value =
-                    value.slice(0, 3) +
+                    value.slice(0, 4) +
                     "-" +
-                    value.slice(3);
+                    value.slice(4);
             }
 
             this.value = value;
