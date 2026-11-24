@@ -12,6 +12,7 @@ session_start();
 require_once __DIR__ . '/../php/config.php';
 require_once __DIR__ . '/../php/activity_logger.php';
 require_once __DIR__ . '/../php/mailer.php';
+require_once __DIR__ . '/../php/security_questions.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -30,17 +31,6 @@ const RS_FLOW_LIFETIME = 900;
 const RS_CHANGE_WINDOW = 600;
 
 const RS_OWNER_EMAIL = 'jdtorino04@gmail.com';
-
-/*
- * Question code-to-label mapping.
- * Only questions actually registered by the student
- * will be displayed.
- */
-const RS_QUESTIONS = [
-    '1' => 'What was the name of your first pet?',
-    '4' => "What is your mother's maiden first name?",
-    '8' => 'What dish did you cook for the first time?'
-];
 
 /* ---------------------------------------------------------
    GENERAL HELPERS
@@ -197,7 +187,7 @@ function getResetQuestions(
     int $userId
 ): array {
     if ($userId <= 0) {
-        return RS_QUESTIONS;
+        return SECURITY_QUESTION_BANK;
     }
 
     $stmt = query(
@@ -218,8 +208,8 @@ function getResetQuestions(
     foreach ($rows as $row) {
         $code = (string)$row['question_code'];
 
-        if (isset(RS_QUESTIONS[$code])) {
-            $questions[$code] = RS_QUESTIONS[$code];
+        if (isset(SECURITY_QUESTION_BANK[$code])) {
+            $questions[$code] = SECURITY_QUESTION_BANK[$code];
         }
     }
 
@@ -401,7 +391,7 @@ function currentState(mysqli $conn): array
         return [
             'success' => true,
             'stage' => 'questions',
-            'questions' => $_SESSION['reset_questions'] ?? RS_QUESTIONS
+            'questions' => $_SESSION['reset_questions'] ?? SECURITY_QUESTION_BANK
         ];
     }
 

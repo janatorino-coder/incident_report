@@ -424,8 +424,8 @@ function validateAddressField(name, label) {
         error = `${label} is required.`;
     } else if (value.length < 2 || value.length > 50) {
         error = `${label} must be between 2 and 50 characters.`;
-    } else if (!/^[A-Za-z ]+$/.test(value)) {
-        error = `${label} must contain letters and spaces only.`;
+    } else if (!/^[\p{L}\p{M}\p{N} '’.-]+$/u.test(value)) {
+        error = `${label} must contain letters, numbers, and basic punctuation only.`;
     } else if (/\s{2,}/.test(value)) {
         error = `${label} must not contain double spaces.`;
     } else if (!isTitleCase(value)) {
@@ -623,25 +623,85 @@ function validateSecurityAnswer(name, label) {
     return !error;
 }
 
+const securityQuestionFields = [
+    "security_question_1",
+    "security_question_2",
+    "security_question_3"
+];
 
+function validateSecurityQuestionChoices() {
+    const choices = securityQuestionFields.map(getFieldValue);
+    const counts = choices.reduce((result, choice) => {
+        if (choice) result[choice] = (result[choice] || 0) + 1;
+        return result;
+    }, {});
+
+    return securityQuestionFields.reduce((valid, name, index) => {
+        const choice = choices[index];
+        const error = !choice
+            ? "Choose a security question."
+            : counts[choice] > 1
+                ? "Choose a different security question."
+                : "";
+
+        setRegistrationFieldError(name, error);
+        return !error && valid;
+    }, true);
+}
+
+function updateSecurityQuestionChoices() {
+    const selects = securityQuestionFields
+        .map(getRegistrationField)
+        .filter(Boolean);
+    const selected = new Set(
+        selects.map(select => select.value).filter(Boolean)
+    );
+
+    selects.forEach(select => {
+        Array.from(select.options).forEach(option => {
+            option.disabled =
+                Boolean(option.value) &&
+                selected.has(option.value) &&
+                option.value !== select.value;
+        });
+    });
+
+    const counts = selects.reduce((result, select) => {
+        if (select.value) {
+            result[select.value] = (result[select.value] || 0) + 1;
+        }
+        return result;
+    }, {});
+
+    securityQuestionFields.forEach(name => {
+        const choice = getFieldValue(name);
+        if (choice && counts[choice] > 1) {
+            setRegistrationFieldError(
+                name,
+                "Choose a different security question."
+            );
+        } else if (choice) {
+            clearRegistrationFieldError(name);
+        }
+    });
+}
 
 function validateSecurityQuestions() {
-    const q1 = validateSecurityAnswer(
+    const choicesValid = validateSecurityQuestionChoices();
+    const answer1Valid = validateSecurityAnswer(
         "security_answer_1",
         "Security answer"
     );
-
-    const q4 = validateSecurityAnswer(
-        "security_answer_4",
+    const answer2Valid = validateSecurityAnswer(
+        "security_answer_2",
+        "Security answer"
+    );
+    const answer3Valid = validateSecurityAnswer(
+        "security_answer_3",
         "Security answer"
     );
 
-    const q8 = validateSecurityAnswer(
-        "security_answer_8",
-        "Security answer"
-    );
-
-    return q1 && q4 && q8;
+    return choicesValid && answer1Valid && answer2Valid && answer3Valid;
 }
 
 
@@ -958,6 +1018,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         field.addEventListener(eventType, () => {
             clearRegistrationFieldError(name);
+
+            if (securityQuestionFields.includes(name)) {
+                updateSecurityQuestionChoices();
+            }
 
             // If password changes, the confirmation
             // may no longer match.

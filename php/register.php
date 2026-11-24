@@ -5,6 +5,7 @@ session_start();
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/security_questions.php';
 
 $isAjax = isset($_POST['ajax']) ||
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
@@ -144,7 +145,7 @@ function cleanSecurityAnswer(string $value): ?string
         mb_strlen($value, 'UTF-8') < 2 ||
         mb_strlen($value, 'UTF-8') > 50 ||
         !preg_match(
-            "/^[\p{L}\p{M}]+(?:[ '\x{2019}-][\p{L}\p{M}]+)*$/u",
+            "/^[\p{L}\p{M}\p{N}]+(?:[ '\x{2019}.-][\p{L}\p{M}\p{N}]+)*$/u",
             $value
         )
     ) {
@@ -583,31 +584,34 @@ if ($zipCode === '') {
 // SECURITY QUESTIONS
 // ==========================================
 
-$answer1 = cleanSecurityAnswer(
-    (string)($_POST['security_answer_1'] ?? '')
-);
+$securityAnswers = [];
+$selectedQuestionCodes = [];
 
-$answer4 = cleanSecurityAnswer(
-    (string)($_POST['security_answer_4'] ?? '')
-);
+for ($slot = 1; $slot <= 3; $slot++) {
+    $questionField = 'security_question_' . $slot;
+    $answerField = 'security_answer_' . $slot;
+    $questionValue = $_POST[$questionField] ?? '';
+    $answerValue = $_POST[$answerField] ?? '';
+    $questionCode = is_string($questionValue) ? trim($questionValue) : '';
+    $answer = cleanSecurityAnswer(
+        is_string($answerValue) ? $answerValue : ''
+    );
 
-$answer8 = cleanSecurityAnswer(
-    (string)($_POST['security_answer_8'] ?? '')
-);
+    if (!array_key_exists($questionCode, SECURITY_QUESTION_BANK)) {
+        $errors[$questionField] = 'Please choose a valid security question.';
+    } elseif (in_array($questionCode, $selectedQuestionCodes, true)) {
+        $errors[$questionField] = 'Choose a different security question.';
+    } else {
+        $selectedQuestionCodes[] = $questionCode;
+        if ($answer !== null) {
+            $securityAnswers[$questionCode] = $answer;
+        }
+    }
 
-if ($answer1 === null) {
-    $errors['security_answer_1'] =
-        'Answer must contain 2–50 letters, spaces, apostrophes, or hyphens only.';
-}
-
-if ($answer4 === null) {
-    $errors['security_answer_4'] =
-        'Answer must contain 2–50 letters, spaces, apostrophes, or hyphens only.';
-}
-
-if ($answer8 === null) {
-    $errors['security_answer_8'] =
-        'Answer must contain 2–50 letters, spaces, apostrophes, or hyphens only.';
+    if ($answer === null) {
+        $errors[$answerField] =
+            'Answer must contain 2–50 letters, numbers, spaces, apostrophes, periods, or hyphens only.';
+    }
 }
 
 
@@ -868,12 +872,6 @@ try {
     // ==========================================
     // HASH AND INSERT SECURITY ANSWERS
     // ==========================================
-
-    $securityAnswers = [
-        '1' => $answer1,
-        '4' => $answer4,
-        '8' => $answer8
-    ];
 
     $insertQuestion = $conn->prepare(
         'INSERT INTO student_security_questions
