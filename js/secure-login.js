@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    function openOtpModal(email, authType = 'login') {
+    function openOtpModal(email, authType = 'login', emailSent = true) {
         currentAuthType = authType;
 
         otpModal.hidden = false;
@@ -105,18 +105,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? 'registration verification code'
                 : 'login verification code';
 
-        otpDescription.textContent =
-            `A ${purposeText} was sent to ${email}. ` +
-            `It expires in ${expirationText}. Enter the six-digit code below.`;
+        otpDescription.textContent = emailSent
+            ? `A ${purposeText} was sent to ${email}. It expires in ${expirationText}. Enter the six-digit code below.`
+            : `Your account was created, but we couldn't send a ${purposeText} to ${email}. You can request another code below.`;
 
         startOtpCountdown(60);
+
+        if (!emailSent) {
+            showMessage(
+                otpMessage,
+                'The verification email was not sent. Please wait for the countdown, then use Resend verification code.',
+                true
+            );
+        }
+
         otpInput.focus();
     }
 
-    window.showRegistrationOtp = function (email) {
+    window.showRegistrationOtp = function (email, emailSent = true) {
         openOtpModal(
             email || 'your registered email',
-            'registration'
+            'registration',
+            emailSent
         );
     };
 

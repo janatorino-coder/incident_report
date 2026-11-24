@@ -1292,18 +1292,21 @@ document.addEventListener("DOMContentLoaded", () => {
             ) {
                 clearRegistrationErrors();
 
+                const emailSent = data.emailSent !== false;
+
                 showFormMessage(
                     registerMessage,
                     data.message ||
                         "Your account was created. Please verify your email address.",
-                    "success"
+                    emailSent ? "success" : "error"
                 );
 
                 if (
                     typeof window.showRegistrationOtp === "function"
                 ) {
                     window.showRegistrationOtp(
-                        data.maskedEmail || "your registered email"
+                        data.maskedEmail || "your registered email",
+                        emailSent
                     );
                 } else {
                     showFormMessage(
