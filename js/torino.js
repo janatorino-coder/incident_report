@@ -864,6 +864,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const registerForm = document.getElementById("registerForm");
     const loginForm = document.getElementById("loginForm");
+    const registerCaptchaImage = document.getElementById(
+        "registerCaptchaImage"
+    );
+    const registerCaptchaInput = document.getElementById(
+        "registerCaptcha"
+    );
+    const refreshRegisterCaptchaButton = document.getElementById(
+        "refreshRegisterCaptcha"
+    );
 
     const registerMessage = document.getElementById("registerMessage");
     const loginMessage = document.getElementById("loginMessage");
@@ -879,6 +888,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!authModal || !authBox || !registerForm || !loginForm) {
         return;
     }
+
+    function refreshRegistrationCaptcha() {
+        if (registerCaptchaImage) {
+            registerCaptchaImage.src =
+                "../php/captcha.php?purpose=registration&t=" + Date.now();
+        }
+
+        if (registerCaptchaInput) {
+            registerCaptchaInput.value = "";
+        }
+
+        clearRegistrationFieldError("captcha");
+    }
+
+    refreshRegisterCaptchaButton?.addEventListener(
+        "click",
+        refreshRegistrationCaptcha
+    );
 
 
     // ==========================================
@@ -1197,6 +1224,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     name: field.name,
                     value: field.type === "password"
                         ? "[HIDDEN]"
+                        : field.name === "captcha"
+                            ? "[HIDDEN]"
                         : field.type === "checkbox"
                             ? field.checked
                             : field.value,
@@ -1263,6 +1292,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     success: response.ok,
                     message: raw
                 };
+            }
+
+            if (data.refreshCaptcha) {
+                refreshRegistrationCaptcha();
             }
 
 
@@ -1333,6 +1366,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
                 registerForm.reset();
+                refreshRegistrationCaptcha();
 
                 window.setTimeout(() => {
                     setAuthMode("login");
@@ -1390,6 +1424,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 "Registration successful! You can now log in.";
 
             registerForm.reset();
+            refreshRegistrationCaptcha();
 
             clearRegistrationErrors();
 

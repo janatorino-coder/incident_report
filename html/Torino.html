@@ -960,6 +960,48 @@
                     </div>
 
 
+                    <!-- REGISTRATION CAPTCHA -->
+
+                    <div class="input-group">
+
+                        <label for="registerCaptcha">
+                            Security verification <span>*</span>
+                        </label>
+
+                        <div class="captcha-row">
+                            <img
+                                src="../php/captcha.php?purpose=registration"
+                                id="registerCaptchaImage"
+                                alt="Registration CAPTCHA code"
+                            >
+
+                            <button
+                                type="button"
+                                id="refreshRegisterCaptcha"
+                                class="captcha-refresh"
+                            >
+                                <i class="fa-solid fa-rotate"></i>
+                                Refresh
+                            </button>
+                        </div>
+
+                        <div class="input-box">
+                            <input
+                                type="text"
+                                id="registerCaptcha"
+                                name="captcha"
+                                placeholder="Enter the code shown above"
+                                maxlength="5"
+                                autocomplete="off"
+                                autocapitalize="characters"
+                                spellcheck="false"
+                                required
+                            >
+                        </div>
+
+                    </div>
+
+
                     <!-- PRIVACY CONSENT -->
 
                     <h3 class="register-section-title">

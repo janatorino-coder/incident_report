@@ -10,8 +10,15 @@ for ($i = 0; $i < 5; $i++) {
     $code .= $characters[random_int(0, strlen($characters) - 1)];
 }
 
-$_SESSION['captcha_hash'] = password_hash($code, PASSWORD_DEFAULT);
-$_SESSION['captcha_created'] = time();
+$captchaHash = password_hash($code, PASSWORD_DEFAULT);
+
+if (($_GET['purpose'] ?? '') === 'registration') {
+    $_SESSION['registration_captcha_hash'] = $captchaHash;
+    $_SESSION['registration_captcha_created'] = time();
+} else {
+    $_SESSION['captcha_hash'] = $captchaHash;
+    $_SESSION['captcha_created'] = time();
+}
 
 $image = imagecreatetruecolor(180, 60);
 

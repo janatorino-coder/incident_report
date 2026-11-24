@@ -7,6 +7,8 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/mailer.php';
 require_once __DIR__ . '/security_questions.php';
 
+const REGISTRATION_CAPTCHA_EXPIRY_SECONDS = 300;
+
 $isAjax = isset($_POST['ajax']) ||
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest';
 
@@ -627,6 +629,45 @@ if (($_POST['privacy_consent'] ?? '') !== '1') {
 
 
 // ==========================================
+// REGISTRATION CAPTCHA
+// ==========================================
+
+$captcha = strtoupper(trim((string)($_POST['captcha'] ?? '')));
+$refreshCaptcha = false;
+
+if (empty($errors)) {
+    $captchaHash = $_SESSION['registration_captcha_hash'] ?? null;
+    $captchaCreated = (int)(
+        $_SESSION['registration_captcha_created'] ?? 0
+    );
+
+    if (
+        !is_string($captchaHash) ||
+        $captchaHash === '' ||
+        $captchaCreated <= 0 ||
+        time() - $captchaCreated > REGISTRATION_CAPTCHA_EXPIRY_SECONDS ||
+        $captcha === '' ||
+        !password_verify($captcha, $captchaHash)
+    ) {
+        unset(
+            $_SESSION['registration_captcha_hash'],
+            $_SESSION['registration_captcha_created']
+        );
+
+        $errors['captcha'] =
+            'Incorrect or expired CAPTCHA. Please try again.';
+        $refreshCaptcha = true;
+    } else {
+        unset(
+            $_SESSION['registration_captcha_hash'],
+            $_SESSION['registration_captcha_created']
+        );
+        $refreshCaptcha = true;
+    }
+}
+
+
+// ==========================================
 // RETURN ALL VALIDATION ERRORS
 // ==========================================
 
@@ -636,7 +677,8 @@ if (!empty($errors)) {
         false,
         'Please correct the highlighted fields.',
         [
-            'errors' => $errors
+            'errors' => $errors,
+            'refreshCaptcha' => $refreshCaptcha
         ]
     );
 }
@@ -753,7 +795,8 @@ try {
             false,
             'Please correct the highlighted fields.',
             [
-                'errors' => $duplicateErrors
+                'errors' => $duplicateErrors,
+                'refreshCaptcha' => true
             ]
         );
     }
@@ -1058,6 +1101,7 @@ try {
 
     registerResponse(
         false,
-        'Registration could not be completed. Please check your information and try again.'
+        'Registration could not be completed. Please check your information and try again.',
+        ['refreshCaptcha' => true]
     );
 }

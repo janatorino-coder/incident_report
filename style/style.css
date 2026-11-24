@@ -234,7 +234,8 @@ body.modal-open { overflow: hidden; }
 }
 
 /* Refresh button */
-.captcha-row button#refreshCaptcha {
+.captcha-row button#refreshCaptcha,
+.captcha-row button.captcha-refresh {
     display: inline-flex;
     flex-direction: row;
     align-items: center;
@@ -258,12 +259,14 @@ body.modal-open { overflow: hidden; }
     cursor: pointer;
 }
 
-.captcha-row button#refreshCaptcha i {
+.captcha-row button#refreshCaptcha i,
+.captcha-row button.captcha-refresh i {
     font-size: 13px;
     display: inline-block;
 }
 
-.captcha-row button#refreshCaptcha:hover {
+.captcha-row button#refreshCaptcha:hover,
+.captcha-row button.captcha-refresh:hover {
     background: #205b40;
     color: #ffffff;
 }
