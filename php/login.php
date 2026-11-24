@@ -154,6 +154,17 @@ if (
     $captcha === '' ||
     !password_verify($captcha, (string)$captchaHash)
 ) {
+
+    logActivity(
+        $conn,
+        null,
+        $username,
+        'CAPTCHA validation failed',
+        'Incorrect or expired CAPTCHA during login.',
+        $ip,
+        'CAPTCHA_FAILED'
+    );
+
     loginResponse(false, 'Incorrect or expired CAPTCHA. Please try again.', [
         'refreshCaptcha' => true
     ]);
@@ -317,7 +328,7 @@ if (!$valid) {
     // SEND OWNER LOCKOUT EMAIL
     if ($newCount % MAX_ATTEMPTS === 0) {
         $emailSent = sendOwnerLockoutAlert(
-            'jana.torino@csucc.edu.ph',
+            'jdtorino04@gmail.com',
             'login',
             $username,
             $ip,
@@ -474,16 +485,18 @@ $insert->close();
 // STEP 7: SEND OTP THROUGH BREVO
 // ==========================================
 
-if (!sendLoginOTP($email, $otp)) {
+$otpSent = sendLoginOTP($email, $otp);
+
+if (!$otpSent) {
 
     logActivity(
         $conn,
         $userId,
         (string)$user['username'],
-        'Login OTP sent',
-        'Login verification OTP successfully sent.',
+        'Login OTP sending failed',
+        'Unable to send login verification OTP.',
         $ip,
-        'OTP_SENT'
+        'OTP_FAILED'
     );
 
     $delete = $conn->prepare(
@@ -502,6 +515,17 @@ if (!sendLoginOTP($email, $otp)) {
         ['refreshCaptcha' => true]
     );
 }
+
+// Record OTP_SENT only after successful email delivery.
+logActivity(
+    $conn,
+    $userId,
+    (string)$user['username'],
+    'Login OTP sent',
+    'Login verification OTP successfully sent.',
+    $ip,
+    'OTP_SENT'
+);
 
 // ==========================================
 // STEP 8: CREATE PENDING SESSION ONLY

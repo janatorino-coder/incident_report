@@ -29,7 +29,7 @@ const RS_RESEND_MAX = 3;
 const RS_FLOW_LIFETIME = 900;
 const RS_CHANGE_WINDOW = 600;
 
-const RS_OWNER_EMAIL = 'jana.torino@csucc.edu.ph';
+const RS_OWNER_EMAIL = 'jdtorino04@gmail.com';
 
 /*
  * Question code-to-label mapping.
