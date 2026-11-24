@@ -126,8 +126,10 @@ if ($username === '' || $password === '') {
     loginResponse(false, 'Please enter your username and password.');
 }
 
-if (strlen($username) < 6 || strlen($username) > 20) {
-    loginResponse(false, 'Username must be between 6 and 20 characters.');
+// Admin username may be shorter because the admin account
+// is created directly in the database.
+if (strlen($username) < 3 || strlen($username) > 50) {
+    loginResponse(false, 'Invalid username format.');
 }
 
 if (strlen($password) < 8 || strlen($password) > 64) {
@@ -260,7 +262,21 @@ $user = $stmt->get_result()->fetch_assoc();
 
 $stmt->close();
 
+// Admin and student accounts have separate username rules.
+$usernameLength = strlen($username);
+
+$usernameAllowed = false;
+
+if ($user) {
+    if ($user['role'] === 'admin') {
+        $usernameAllowed = $usernameLength >= 3 && $usernameLength <= 50;
+    } elseif ($user['role'] === 'student') {
+        $usernameAllowed = $usernameLength >= 6 && $usernameLength <= 20;
+    }
+}
+
 $valid = $user &&
+    $usernameAllowed &&
     password_verify($password, (string)$user['password']);
 
 // ==========================================
