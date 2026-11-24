@@ -6,6 +6,7 @@ session_start();
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/activity_logger.php';
 require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/session.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -626,9 +627,14 @@ if ($clearAttempts) {
 }
 
 
-// Regenerate session ID.
+// Move the authenticated session to a role-specific cookie.
 
-session_regenerate_id(true);
+if (!migrateSirsSessionToRole($role)) {
+    otpResponse([
+        'success' => false,
+        'message' => 'Unable to start a secure login session. Please try again.'
+    ], 500);
+}
 
 
 // Establish authenticated session.

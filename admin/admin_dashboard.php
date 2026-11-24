@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../php/session.php';
+startSirsRoleSession('admin');
 
 if (
     isset($_SESSION['user_id']) &&
@@ -405,7 +406,7 @@ $chartPayload = [
             </button>
 
             <!-- LOG OUT -->
-            <a class="nav-item sidebar-logout" href="../php/logout.php">
+            <a class="nav-item sidebar-logout" href="../php/logout.php?role=admin">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
                 <span>Log out</span>
             </a>

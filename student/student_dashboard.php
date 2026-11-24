@@ -1,6 +1,7 @@
 
 <?php
-session_start();
+require_once __DIR__ . '/../php/session.php';
+startSirsRoleSession('student');
 
 if (
     isset($_SESSION['user_id']) &&
@@ -474,7 +475,7 @@ function renderReports(array $reports): void {
             </a>
 
             <!-- Sign out moved from Settings into the sidebar -->
-            <a class="sign-out-link" href="../php/logout.php">
+            <a class="sign-out-link" href="../php/logout.php?role=student">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
                 Sign out
             </a>
