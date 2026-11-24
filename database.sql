@@ -45,8 +45,10 @@ CREATE TABLE IF NOT EXISTS incidents (
 CREATE TABLE IF NOT EXISTS activity_logs (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNSIGNED DEFAULT NULL,
-    actor_name VARCHAR(100) NOT NULL,
-    action VARCHAR(100) NOT NULL,
+    ip_address VARCHAR(45) DEFAULT NULL,
+    user_agent VARCHAR(255) DEFAULT NULL,
+    username_typed VARCHAR(100) DEFAULT NULL,
+    event_type VARCHAR(100) NOT NULL,
     details VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_activity_logs_created_at (created_at),

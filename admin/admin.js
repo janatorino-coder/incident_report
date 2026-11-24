@@ -665,6 +665,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     filterIncidents();
 
+    const initialSection =
+        new URLSearchParams(window.location.search).get("section");
+
+    if (initialSection) {
+        goToPage(initialSection);
+    }
+
 });
 
 // Admin settings are stored locally in this browser for this coursework build.

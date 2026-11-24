@@ -63,4 +63,8 @@ Username: admin
 Password: admin123
 Role: admin
 
+Username: janadt
+Password: Jana@12345!
+Role: student
+
 composer require phpmailer/phpmailer

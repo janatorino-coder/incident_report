@@ -48,6 +48,67 @@ function formatIncidentDate(?string $value, string $format = "M j, Y · g:i A"):
     return $timestamp ? date($format, $timestamp) : "—";
 }
 
+function validActivityDate(string $date): bool {
+    $parsed = DateTimeImmutable::createFromFormat("!Y-m-d", $date);
+    return $parsed !== false && $parsed->format("Y-m-d") === $date;
+}
+
+function activityEventClass(string $eventType): string {
+    if (str_contains($eventType, "SUCCESS") || str_contains($eventType, "VERIFIED")) {
+        return "success";
+    }
+    if (str_contains($eventType, "LOCKED") || str_contains($eventType, "ALERT")) {
+        return "warning";
+    }
+    if (str_contains($eventType, "LOCKOUT")) {
+        return "warning";
+    }
+    if (str_contains($eventType, "FAILED")) {
+        return "danger";
+    }
+    if (str_contains($eventType, "OTP_SENT")) {
+        return "info";
+    }
+    return "neutral";
+}
+
+function activityBrowserLabel(?string $userAgent): string {
+    $userAgent = trim((string)$userAgent);
+    if ($userAgent === "") return "Unknown";
+
+    $browser = "Browser";
+    $version = "";
+    foreach ([
+        "Edge" => "/Edg\\/([0-9.]+)/",
+        "Opera" => "/OPR\\/([0-9.]+)/",
+        "Chrome" => "/Chrome\\/([0-9.]+)/",
+        "Firefox" => "/Firefox\\/([0-9.]+)/",
+        "Safari" => "/Version\\/([0-9.]+).*Safari/"
+    ] as $name => $pattern) {
+        if (preg_match($pattern, $userAgent, $matches)) {
+            $browser = $name;
+            $version = " " . explode(".", $matches[1])[0];
+            break;
+        }
+    }
+
+    if (str_contains($userAgent, "Windows")) {
+        $platform = "Windows";
+    } elseif (str_contains($userAgent, "Android")) {
+        $platform = "Android";
+    } elseif (str_contains($userAgent, "iPhone") || str_contains($userAgent, "iPad")) {
+        $platform = "iOS";
+    } elseif (str_contains($userAgent, "Mac OS") || str_contains($userAgent, "Macintosh")) {
+        $platform = "macOS";
+    } elseif (str_contains($userAgent, "Linux")) {
+        $platform = "Linux";
+    } else {
+        $platform = "Unknown platform";
+    }
+
+    return $browser . $version . " · " . $platform;
+}
+
 function logAdminActivity(
     ?mysqli $conn,
     int $userId,
@@ -170,6 +231,7 @@ $conn = null;
 $dbReady = false;
 $dbMessage = "";
 $activityLogsReady = false;
+$loginAttemptsReady = false;
 
 if (is_file(dirname(__DIR__) . "/php/config.php")) {
     require_once dirname(__DIR__) . "/php/config.php";
@@ -183,6 +245,8 @@ if (is_file(dirname(__DIR__) . "/php/config.php")) {
         }
         $logsCheck = @$conn->query("SHOW TABLES LIKE 'activity_logs'");
         $activityLogsReady = $logsCheck && $logsCheck->num_rows > 0;
+        $attemptsCheck = @$conn->query("SHOW TABLES LIKE 'login_attempts'");
+        $loginAttemptsReady = $attemptsCheck && $attemptsCheck->num_rows > 0;
     } else {
         $dbMessage = "Database connection was not available. Check that config.php creates a working MySQLi connection named \$conn.";
     }
@@ -274,6 +338,40 @@ $categoryData = [];
 $weeklyData = ["labels" => [], "values" => []];
 $monthlyData = ["labels" => [], "values" => []];
 $logs = [];
+$activityEventTypes = [];
+$activityMetrics = [
+    "successful_logins" => 0,
+    "failed_logins" => 0,
+    "locked_accounts" => 0,
+    "blocked_ips" => 0,
+    "otp_sent" => 0,
+    "otp_failed" => 0,
+    "alert_emails" => 0,
+];
+$hourlyFailures = array_fill(0, 24, 0);
+$hourlyLabels = [];
+$topFailureIps = [];
+$blockedIpAddresses = [];
+$securityFlags = [];
+$activityLogsError = "";
+$today = date("Y-m-d");
+$dateFromInput = $_GET["date_from"] ?? $today;
+$dateToInput = $_GET["date_to"] ?? $today;
+$activityDateFrom = is_string($dateFromInput) && validActivityDate($dateFromInput)
+    ? $dateFromInput
+    : $today;
+$activityDateTo = is_string($dateToInput) && validActivityDate($dateToInput)
+    ? $dateToInput
+    : $today;
+if ($activityDateFrom > $activityDateTo) {
+    [$activityDateFrom, $activityDateTo] = [$activityDateTo, $activityDateFrom];
+}
+$eventTypeInput = $_GET["event_type"] ?? "";
+$activityEventType = is_string($eventTypeInput) ? substr(trim($eventTypeInput), 0, 100) : "";
+$usernameInput = $_GET["username"] ?? "";
+$activityUsername = is_string($usernameInput) ? substr(trim($usernameInput), 0, 100) : "";
+$ipInput = $_GET["ip"] ?? "";
+$activityIp = is_string($ipInput) ? substr(trim($ipInput), 0, 45) : "";
 $resolvedRate = 0;
 
 if ($dbReady && $conn) {
@@ -342,13 +440,230 @@ if ($dbReady && $conn) {
     }
 
     if ($activityLogsReady) {
-        $logsResult = @$conn->query(
-            "SELECT username_typed, event_type, details, created_at
+        $statsResult = $conn->query(
+            "SELECT
+                SUM(event_type = 'LOGIN_SUCCESS') AS successful_logins,
+                SUM(event_type = 'LOGIN_FAILED') AS failed_logins,
+                SUM(event_type = 'OTP_SENT') AS otp_sent,
+                SUM(event_type = 'OTP_FAILED') AS otp_failed,
+                SUM(event_type = 'ALERT_EMAIL_SENT') AS alert_emails
             FROM activity_logs
-            ORDER BY created_at DESC, id DESC
-            LIMIT 100"
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)"
         );
-        if ($logsResult) $logs = $logsResult->fetch_all(MYSQLI_ASSOC);
+        if ($statsResult) {
+            $statsRow = $statsResult->fetch_assoc() ?: [];
+            foreach ($activityMetrics as $metric => $value) {
+                if (array_key_exists($metric, $statsRow)) {
+                    $activityMetrics[$metric] = (int)$statsRow[$metric];
+                }
+            }
+        } else {
+            error_log("Activity log metrics query failed: " . $conn->error);
+            $activityLogsError = "Some activity monitoring data could not be loaded. Check the activity_logs table schema and server error log.";
+        }
+
+        for ($hoursAgo = 23; $hoursAgo >= 0; $hoursAgo--) {
+            $hourlyLabels[] = date("H:00", time() - ($hoursAgo * 3600));
+        }
+
+        $hourlyResult = $conn->query(
+            "SELECT TIMESTAMPDIFF(HOUR, created_at, NOW()) AS hours_ago,
+                    COUNT(*) AS failures
+            FROM activity_logs
+            WHERE event_type = 'LOGIN_FAILED'
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            GROUP BY hours_ago"
+        );
+        if ($hourlyResult) {
+            while ($row = $hourlyResult->fetch_assoc()) {
+                $hoursAgo = (int)$row["hours_ago"];
+                if ($hoursAgo >= 0 && $hoursAgo < 24) {
+                    $hourlyFailures[23 - $hoursAgo] = (int)$row["failures"];
+                }
+            }
+        } else {
+            error_log("Hourly activity log query failed: " . $conn->error);
+            $activityLogsError = "Some activity monitoring data could not be loaded. Check the activity_logs table schema and server error log.";
+        }
+
+        $ipFlagDisplayCount = 0;
+        $ipFlagsResult = $conn->query(
+            "SELECT ip_address, COUNT(*) AS failures,
+                    COUNT(DISTINCT username_typed) AS usernames
+            FROM activity_logs
+            WHERE event_type = 'LOGIN_FAILED'
+              AND ip_address IS NOT NULL
+              AND ip_address <> ''
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+            GROUP BY ip_address
+            HAVING COUNT(*) >= 10
+            ORDER BY failures DESC"
+        );
+        if ($ipFlagsResult) {
+            while ($row = $ipFlagsResult->fetch_assoc()) {
+                $ip = (string)$row["ip_address"];
+                $blockedIpAddresses[$ip] = true;
+                if ($ipFlagDisplayCount < 3) {
+                    $securityFlags[] = [
+                        "type" => "danger",
+                        "title" => "IP over threshold",
+                        "description" => $ip . " — " . (int)$row["failures"] .
+                            " failures across " . (int)$row["usernames"] . " usernames"
+                    ];
+                    $ipFlagDisplayCount++;
+                }
+            }
+            $activityMetrics["blocked_ips"] = count($blockedIpAddresses);
+        } else {
+            error_log("IP activity flag query failed: " . $conn->error);
+            $activityLogsError = "Some activity monitoring data could not be loaded. Check the activity_logs table schema and server error log.";
+        }
+
+        $targetedAccountsResult = $conn->query(
+            "SELECT username_typed, COUNT(*) AS failures,
+                    COUNT(DISTINCT ip_address) AS source_ips
+            FROM activity_logs
+            WHERE event_type = 'LOGIN_FAILED'
+              AND username_typed IS NOT NULL
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+            GROUP BY username_typed
+            HAVING COUNT(*) >= 5 AND COUNT(DISTINCT ip_address) >= 3
+            ORDER BY failures DESC
+            LIMIT 3"
+        );
+        if ($targetedAccountsResult) {
+            while ($row = $targetedAccountsResult->fetch_assoc()) {
+                $securityFlags[] = [
+                    "type" => "warning",
+                    "title" => "Account targeted",
+                    "description" => (string)$row["username_typed"] . " — " .
+                        (int)$row["failures"] . " failures from " .
+                        (int)$row["source_ips"] . " different IPs"
+                ];
+            }
+        } else {
+            error_log("Targeted account activity query failed: " . $conn->error);
+            $activityLogsError = "Some activity monitoring data could not be loaded. Check the activity_logs table schema and server error log.";
+        }
+
+        $otpFlagsResult = $conn->query(
+            "SELECT username_typed, COUNT(*) AS failures
+            FROM activity_logs
+            WHERE event_type = 'OTP_FAILED'
+              AND details LIKE '%Incorrect OTP%'
+              AND username_typed IS NOT NULL
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+            GROUP BY username_typed
+            HAVING COUNT(*) >= 5
+            ORDER BY failures DESC
+            LIMIT 3"
+        );
+        if ($otpFlagsResult) {
+            while ($row = $otpFlagsResult->fetch_assoc()) {
+                $securityFlags[] = [
+                    "type" => "warning",
+                    "title" => "OTP guessing",
+                    "description" => (string)$row["username_typed"] . " — " .
+                        (int)$row["failures"] . " wrong OTPs in 10 minutes"
+                ];
+            }
+        } else {
+            error_log("OTP activity flag query failed: " . $conn->error);
+            $activityLogsError = "Some activity monitoring data could not be loaded. Check the activity_logs table schema and server error log.";
+        }
+
+        if ($loginAttemptsReady) {
+            $lockedAccountsResult = $conn->query(
+                "SELECT COUNT(DISTINCT username) AS total
+                FROM login_attempts
+                WHERE failed_attempts >= 3
+                  AND MOD(failed_attempts, 3) = 0
+                  AND TIMESTAMPDIFF(SECOND, last_failed_at, NOW()) <
+                    CASE
+                        WHEN failed_attempts < 6 THEN 15
+                        WHEN failed_attempts < 9 THEN 30
+                        ELSE 60
+                    END"
+            );
+            if ($lockedAccountsResult) {
+                $lockedRow = $lockedAccountsResult->fetch_assoc() ?: [];
+                $activityMetrics["locked_accounts"] = (int)($lockedRow["total"] ?? 0);
+            } else {
+                error_log("Locked account count query failed: " . $conn->error);
+                $activityLogsError = "Some activity monitoring data could not be loaded. Check the login_attempts table and server error log.";
+            }
+        }
+
+        $topIpsResult = $conn->query(
+            "SELECT ip_address, COUNT(*) AS failures
+            FROM activity_logs
+            WHERE event_type = 'LOGIN_FAILED'
+              AND ip_address IS NOT NULL
+              AND ip_address <> ''
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            GROUP BY ip_address
+            ORDER BY failures DESC, ip_address ASC
+            LIMIT 4"
+        );
+        if ($topIpsResult) {
+            $topFailureIps = $topIpsResult->fetch_all(MYSQLI_ASSOC);
+        } else {
+            error_log("Top failed login IP query failed: " . $conn->error);
+            $activityLogsError = "Some activity monitoring data could not be loaded. Check the activity_logs table schema and server error log.";
+        }
+
+        $eventTypesResult = $conn->query(
+            "SELECT DISTINCT event_type FROM activity_logs
+            WHERE event_type <> '' ORDER BY event_type ASC"
+        );
+        if ($eventTypesResult) {
+            while ($row = $eventTypesResult->fetch_assoc()) {
+                $activityEventTypes[] = (string)$row["event_type"];
+            }
+        } else {
+            error_log("Activity event type query failed: " . $conn->error);
+            $activityLogsError = "Activity event types could not be loaded. Check the activity_logs table schema and server error log.";
+        }
+
+        if (!in_array($activityEventType, $activityEventTypes, true)) {
+            $activityEventType = "";
+        }
+
+        $logsStmt = $conn->prepare(
+            "SELECT username_typed, event_type, details, ip_address,
+                    user_agent, created_at
+            FROM activity_logs
+            WHERE created_at >= CONCAT(?, ' 00:00:00')
+              AND created_at < DATE_ADD(CONCAT(?, ' 00:00:00'), INTERVAL 1 DAY)
+              AND (? = '' OR event_type = ?)
+              AND (? = '' OR username_typed LIKE CONCAT('%', ?, '%'))
+              AND (? = '' OR ip_address LIKE CONCAT('%', ?, '%'))
+            ORDER BY created_at DESC, id DESC
+            LIMIT 50"
+        );
+        if ($logsStmt) {
+            $logsStmt->bind_param(
+                "ssssssss",
+                $activityDateFrom,
+                $activityDateTo,
+                $activityEventType,
+                $activityEventType,
+                $activityUsername,
+                $activityUsername,
+                $activityIp,
+                $activityIp
+            );
+            if ($logsStmt->execute()) {
+                $logs = $logsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            } else {
+                error_log("Recent activity list query failed: " . $logsStmt->error);
+                $activityLogsError = "Recent activity could not be loaded. Check the activity_logs table schema and server error log.";
+            }
+            $logsStmt->close();
+        } else {
+            error_log("Recent activity list prepare failed: " . $conn->error);
+            $activityLogsError = "Recent activity could not be loaded. Check the activity_logs table schema and server error log.";
+        }
     }
 }
 
@@ -361,6 +676,9 @@ $chartPayload = [
     "monthly" => $monthlyData,
     "categories" => $categoryData,
 ];
+$activeView = (($_GET["section"] ?? "") === "logs") ? "logs" : "dashboard";
+$maxHourlyFailures = max($hourlyFailures);
+$hasHourlyFailures = $maxHourlyFailures > 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -384,11 +702,11 @@ $chartPayload = [
 
         <p class="nav-group-label">WORKSPACE</p>
         <nav class="nav-list" aria-label="Admin navigation">
-            <button type="button" class="nav-item active" data-page="dashboard" data-title="Dashboard overview"><i class="fa-solid fa-table-columns"></i><span>Dashboard</span></button>
+            <button type="button" class="nav-item <?= $activeView === "dashboard" ? "active" : "" ?>" data-page="dashboard" data-title="Dashboard overview"><i class="fa-solid fa-table-columns"></i><span>Dashboard</span></button>
             <button type="button" class="nav-item" data-page="incidents" data-title="Incident reports"><i class="fa-solid fa-file-lines"></i><span>Incident Report</span><span class="nav-badge"><?= number_format($stats["total"]) ?></span></button>
             <button type="button" class="nav-item" data-page="analytics" data-title="Analytics and reports"><i class="fa-solid fa-chart-line"></i><span>Analytics and Report</span></button>
             <button type="button" class="nav-item" data-page="notifications" data-title="Notifications"><i class="fa-solid fa-bell"></i><span>Notifications</span><?php if ($notificationsCount > 0): ?><span class="nav-badge"><?= number_format($notificationsCount) ?></span><?php endif; ?></button>
-            <button type="button" class="nav-item" data-page="logs" data-title="Activity logs"><i class="fa-solid fa-clock-rotate-left"></i><span>Activity Logs</span></button>
+            <button type="button" class="nav-item <?= $activeView === "logs" ? "active" : "" ?>" data-page="logs" data-title="Activity logs"><i class="fa-solid fa-clock-rotate-left"></i><span>Activity Logs</span></button>
         </nav>
 
         <p class="nav-group-label">MANAGEMENT</p>
@@ -433,7 +751,7 @@ $chartPayload = [
                 <div class="alert <?= h($flash["type"] ?? "info") ?>" role="status"><i class="fa-solid <?= ($flash["type"] ?? "") === "success" ? "fa-circle-check" : "fa-circle-exclamation" ?>"></i><span><?= h($flash["message"] ?? "") ?></span><button type="button" class="alert-close" aria-label="Dismiss message">×</button></div>
             <?php endif; ?>
             <!-- DASHBOARD VIEW -->
-            <section class="view-section active-view" data-view="dashboard">
+            <section class="view-section <?= $activeView === "dashboard" ? "active-view" : "" ?>" data-view="dashboard" <?= $activeView !== "dashboard" ? "hidden" : "" ?>>
                 <div class="page-head"><div><h2>Dashboard overview</h2><p>Live school safety information from submitted incident reports.</p></div><button type="button" class="btn-primary open-report-modal" <?= !$dbReady ? "disabled" : "" ?>><i class="fa-solid fa-plus"></i> New report</button></div>
                 <div class="hero"><div class="hero-inner"><div class="hero-eyebrow">STUDENT SAFETY. SHARED RESPONSIBILITY.</div><h3>Every report makes a difference.</h3><p>Stay informed. Take action. Build a safer school community.</p></div></div>
 
@@ -477,11 +795,87 @@ $chartPayload = [
             </section>
 
             <!-- ACTIVITY LOGS VIEW -->
-            <section class="view-section" data-view="logs" hidden>
-                <div class="page-head"><div><h2>Activity logs</h2><p>Administrative actions recorded by the system.</p></div></div>
-                <div class="table-panel"><div class="panel-head"><div><h4>Recent activity</h4><p>Latest 100 recorded actions</p></div></div><div class="table-scroll"><table><thead><tr><th>Username</th><th>Event Type</th><th>Details</th><th>Date and time</th></tr></thead><tbody>
-                    <?php if (!$activityLogsReady): ?><tr><td colspan="4"><div class="table-empty"><i class="fa-solid fa-clock-rotate-left"></i><strong>Activity log table is not set up</strong><span>Run schema.sql to enable recording and viewing admin actions.</span></div></td></tr><?php elseif (!$logs): ?><tr><td colspan="4"><div class="table-empty"><i class="fa-regular fa-folder-open"></i><strong>No activity recorded yet</strong><span>Creating a report or changing a status will create an activity entry.</span></div></td></tr><?php else: foreach ($logs as $log): ?><tr><td><?= h($log["username_typed"]) ?></td><td><?= h($log["event_type"]) ?></td><td><?= h($log["details"]) ?></td><td><?= h(formatIncidentDate($log["created_at"] ?? null)) ?></td></tr><?php endforeach; endif; ?>
-                </tbody></table></div></div>
+            <section class="view-section <?= $activeView === "logs" ? "active-view" : "" ?>" data-view="logs" <?= $activeView !== "logs" ? "hidden" : "" ?>>
+                <div class="page-head"><div><h2>Activity logs</h2><p>Authentication events and security activity recorded by the system.</p></div></div>
+                <?php if ($activityLogsError !== ""): ?><div class="alert error" role="alert"><i class="fa-solid fa-circle-exclamation"></i><span><?= h($activityLogsError) ?></span></div><?php endif; ?>
+
+                <div class="stat-grid security-stat-grid">
+                    <div class="stat-card"><div class="security-stat-label">Successful log-ins</div><div class="stat-value"><?= number_format($activityMetrics["successful_logins"]) ?></div></div>
+                    <div class="stat-card"><div class="security-stat-label">Failed log-ins</div><div class="stat-value danger-value"><?= number_format($activityMetrics["failed_logins"]) ?></div></div>
+                    <div class="stat-card"><div class="security-stat-label">Accounts locked now</div><div class="stat-value warning-value"><?= number_format($activityMetrics["locked_accounts"]) ?></div></div>
+                    <div class="stat-card"><div class="security-stat-label">IPs blocked now</div><div class="stat-value danger-value"><?= number_format($activityMetrics["blocked_ips"]) ?></div></div>
+                    <div class="stat-card"><div class="security-stat-label">OTPs sent / failed</div><div class="stat-value"><?= number_format($activityMetrics["otp_sent"]) ?> / <?= number_format($activityMetrics["otp_failed"]) ?></div></div>
+                    <div class="stat-card"><div class="security-stat-label">Alert emails sent</div><div class="stat-value"><?= number_format($activityMetrics["alert_emails"]) ?></div></div>
+                    <div class="security-stat-period">Counts cover the last 24 hours unless the card says “now”.</div>
+                </div>
+
+                <div class="panel-row security-panel-row">
+                    <section class="panel security-panel">
+                        <div class="panel-head"><div><h4>Failed log-ins per hour — last 24 hours</h4><p>Each bar represents one hour</p></div></div>
+                        <?php if (!$activityLogsReady): ?>
+                            <div class="security-empty">Activity log table is not available.</div>
+                        <?php elseif (!$hasHourlyFailures): ?>
+                            <div class="security-empty">No failed log-ins recorded in the last 24 hours.</div>
+                        <?php else: ?>
+                            <div class="hourly-chart" role="img" aria-label="Failed log-ins per hour for the last 24 hours">
+                                <?php foreach ($hourlyFailures as $index => $failures): $barHeight = $failures > 0 ? max(5, (int)round(($failures / $maxHourlyFailures) * 100)) : 0; ?>
+                                    <span class="hourly-bar-wrap" title="<?= h($hourlyLabels[$index] . " — " . $failures . " failed log-ins") ?>"><span class="hourly-bar <?= $failures === $maxHourlyFailures && $failures > 0 ? "peak" : "" ?>" style="height: <?= $barHeight ?>%"></span></span>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="hourly-axis"><span><?= h($hourlyLabels[0] ?? "") ?></span><span><?= h($hourlyLabels[6] ?? "") ?></span><span><?= h($hourlyLabels[12] ?? "") ?></span><span><?= h($hourlyLabels[18] ?? "") ?></span><span><?= h($hourlyLabels[23] ?? "") ?></span></div>
+                        <?php endif; ?>
+                    </section>
+
+                    <section class="panel security-panel">
+                        <div class="panel-head"><div><h4>Top IP addresses by failures</h4><p>Last 24 hours</p></div></div>
+                        <?php if (!$activityLogsReady): ?>
+                            <div class="security-empty">Activity log table is not available.</div>
+                        <?php elseif (!$topFailureIps): ?>
+                            <div class="security-empty">No failed log-ins recorded yet.</div>
+                        <?php else: ?>
+                            <div class="security-mini-table">
+                                <div class="security-mini-head"><span>IP address</span><span>Failures</span><span>Status</span></div>
+                                <?php foreach ($topFailureIps as $ipRow): $rowIp = (string)$ipRow["ip_address"]; ?>
+                                    <div class="security-mini-row"><span><?= h($rowIp) ?></span><strong><?= number_format((int)$ipRow["failures"]) ?></strong><span><?= isset($blockedIpAddresses[$rowIp]) ? '<b class="security-status blocked">BLOCKED</b>' : '<span class="security-status neutral">—</span>' ?></span></div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </section>
+
+                    <section class="panel security-panel">
+                        <div class="panel-head"><div><h4>Security monitoring flags</h4><p>Threshold checks over the last 10 minutes</p></div></div>
+                        <?php if (!$activityLogsReady): ?>
+                            <div class="security-empty">Activity log table is not available.</div>
+                        <?php elseif (!$securityFlags): ?>
+                            <div class="security-empty">No current authentication flags.</div>
+                        <?php else: ?>
+                            <ul class="security-flags">
+                                <?php foreach ($securityFlags as $flag): ?>
+                                    <li class="<?= h($flag["type"]) ?>"><span class="security-flag-dot"></span><span><strong><?= h($flag["title"]) ?></strong><small><?= h($flag["description"]) ?></small></span></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </section>
+                </div>
+
+                <div class="table-panel security-events-panel">
+                    <div class="panel-head"><div><h4>Recent events (latest 50)</h4><p>Filter authentication and system activity by date, event, username, or IP.</p></div></div>
+                    <form class="activity-filter-bar" method="get" action="admin_dashboard.php">
+                        <input type="hidden" name="section" value="logs">
+                        <label><span>Date from</span><input type="date" name="date_from" value="<?= h($activityDateFrom) ?>"></label>
+                        <label><span>Date to</span><input type="date" name="date_to" value="<?= h($activityDateTo) ?>"></label>
+                        <label><span>Event type</span><select name="event_type"><option value="">All</option><?php foreach ($activityEventTypes as $eventType): ?><option value="<?= h($eventType) ?>" <?= $activityEventType === $eventType ? "selected" : "" ?>><?= h(str_replace("_", " ", $eventType)) ?></option><?php endforeach; ?></select></label>
+                        <label><span>Username</span><input type="search" name="username" maxlength="100" placeholder="Any username" value="<?= h($activityUsername) ?>"></label>
+                        <label><span>IP address</span><input type="search" name="ip" maxlength="45" placeholder="Any IP" value="<?= h($activityIp) ?>"></label>
+                        <button class="btn-primary activity-filter-submit" type="submit"><i class="fa-solid fa-filter"></i> Apply filter</button>
+                        <a class="btn-quiet activity-filter-reset" href="admin_dashboard.php?section=logs">Reset</a>
+                    </form>
+                    <div class="table-scroll"><table class="security-events-table"><thead><tr><th>Time</th><th>Event</th><th>Username</th><th>IP address</th><th>Browser</th></tr></thead><tbody>
+                        <?php if (!$activityLogsReady): ?><tr><td colspan="5"><div class="table-empty"><i class="fa-solid fa-clock-rotate-left"></i><strong>Activity log table is not set up</strong><span>Run the activity log schema setup to enable monitoring.</span></div></td></tr><?php elseif ($activityLogsError !== "" && !$logs): ?><tr><td colspan="5"><div class="table-empty"><i class="fa-solid fa-triangle-exclamation"></i><strong>Unable to load activity events</strong><span>Check the database schema and server error log.</span></div></td></tr><?php elseif (!$logs): ?><tr><td colspan="5"><div class="table-empty"><i class="fa-regular fa-folder-open"></i><strong>No matching activity found</strong><span>Try changing the date range or filters.</span></div></td></tr><?php else: foreach ($logs as $log): $eventType = (string)($log["event_type"] ?? ""); ?>
+                            <tr><td><?= h(formatIncidentDate($log["created_at"] ?? null, "H:i:s")) ?></td><td><span class="activity-event <?= h(activityEventClass($eventType)) ?>" title="<?= h($log["details"] ?? "") ?>"><?= h(str_replace("_", " ", strtoupper($eventType))) ?></span></td><td><?= h($log["username_typed"] ?? "—") ?></td><td><?= h($log["ip_address"] ?? "—") ?></td><td><?= h(activityBrowserLabel($log["user_agent"] ?? null)) ?></td></tr>
+                        <?php endforeach; endif; ?>
+                    </tbody></table></div>
+                </div>
             </section>
 
             <!-- SETTINGS VIEW -->
