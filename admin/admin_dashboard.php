@@ -47,17 +47,71 @@ function formatIncidentDate(?string $value, string $format = "M j, Y · g:i A"):
     return $timestamp ? date($format, $timestamp) : "—";
 }
 
-function logAdminActivity(?mysqli $conn, int $userId, string $actor, string $action, string $details): void {
-    if (!$conn) return;
-    $check = @$conn->query("SHOW TABLES LIKE 'activity_logs'");
-    if (!$check || $check->num_rows === 0) return;
+function logAdminActivity(
+    ?mysqli $conn,
+    int $userId,
+    string $actor,
+    string $action,
+    string $details
+): void {
 
-    $stmt = @$conn->prepare("INSERT INTO activity_logs (user_id, actor_name, action, details) VALUES (?, ?, ?, ?)");
-    if ($stmt) {
-        $stmt->bind_param("isss", $userId, $actor, $action, $details);
-        @$stmt->execute();
-        $stmt->close();
+    if (!$conn) {
+        return;
     }
+
+    // Convert admin actions into consistent event codes.
+    $eventTypes = [
+        'Created incident report' => 'ADMIN_CREATED_INCIDENT',
+        'Updated incident status' => 'ADMIN_UPDATED_INCIDENT_STATUS',
+        'Viewed admin dashboard' => 'ADMIN_VIEWED_DASHBOARD'
+    ];
+
+    $eventType = $eventTypes[$action] ?? 'ADMIN_ACTIVITY';
+
+    // Prefer the actual logged-in username.
+    $username = trim((string)($_SESSION['username'] ?? $actor));
+
+    $ip = substr(
+        (string)($_SERVER['REMOTE_ADDR'] ?? ''),
+        0,
+        45
+    );
+
+    $userAgent = substr(
+        (string)($_SERVER['HTTP_USER_AGENT'] ?? ''),
+        0,
+        255
+    );
+
+    $logDetails = substr($action . ' - ' . $details, 0, 255);
+
+    $stmt = $conn->prepare(
+        'INSERT INTO activity_logs
+            (event_type, username_typed, user_id, ip_address,
+             user_agent, details)
+         VALUES (?, ?, ?, ?, ?, ?)'
+    );
+
+    if (!$stmt) {
+        error_log('Admin activity log prepare failed: ' . $conn->error);
+        return;
+    }
+
+    $stmt->bind_param(
+        'ssisss',
+        $eventType,
+        $username,
+        $userId,
+        $ip,
+        $userAgent,
+        $logDetails
+    );
+
+    if (!$stmt->execute()) {
+        error_log('Admin activity log insert failed: ' . $stmt->error);
+    }
+
+    $stmt->close();
 }
 
 function renderIncidentRows(array $reports, string $csrfToken, bool $editable = false): void {
@@ -133,6 +187,17 @@ if (is_file(dirname(__DIR__) . "/php/config.php")) {
     }
 } else {
     $dbMessage = "config.php was not found. Put admin_dashboard.php in the same project folder as your database configuration file.";
+}
+
+// Record every successful admin dashboard visit.
+if ($dbReady && $activityLogsReady && $conn) {
+    logAdminActivity(
+        $conn,
+        (int)($_SESSION['user_id'] ?? 0),
+        'Admin',
+        'Viewed admin dashboard',
+        'Administrator opened the dashboard.'
+    );
 }
 
 $allowedStatuses = ["Pending", "In review", "Resolved"];
@@ -276,7 +341,12 @@ if ($dbReady && $conn) {
     }
 
     if ($activityLogsReady) {
-        $logsResult = @$conn->query("SELECT actor_name, action, details, created_at FROM activity_logs ORDER BY created_at DESC, id DESC LIMIT 100");
+        $logsResult = @$conn->query(
+            "SELECT username_typed, event_type, details, created_at
+            FROM activity_logs
+            ORDER BY created_at DESC, id DESC
+            LIMIT 100"
+        );
         if ($logsResult) $logs = $logsResult->fetch_all(MYSQLI_ASSOC);
     }
 }
@@ -408,8 +478,8 @@ $chartPayload = [
             <!-- ACTIVITY LOGS VIEW -->
             <section class="view-section" data-view="logs" hidden>
                 <div class="page-head"><div><h2>Activity logs</h2><p>Administrative actions recorded by the system.</p></div></div>
-                <div class="table-panel"><div class="panel-head"><div><h4>Recent activity</h4><p>Latest 100 recorded actions</p></div></div><div class="table-scroll"><table><thead><tr><th>Administrator</th><th>Action</th><th>Details</th><th>Date and time</th></tr></thead><tbody>
-                    <?php if (!$activityLogsReady): ?><tr><td colspan="4"><div class="table-empty"><i class="fa-solid fa-clock-rotate-left"></i><strong>Activity log table is not set up</strong><span>Run schema.sql to enable recording and viewing admin actions.</span></div></td></tr><?php elseif (!$logs): ?><tr><td colspan="4"><div class="table-empty"><i class="fa-regular fa-folder-open"></i><strong>No activity recorded yet</strong><span>Creating a report or changing a status will create an activity entry.</span></div></td></tr><?php else: foreach ($logs as $log): ?><tr><td><?= h($log["actor_name"]) ?></td><td><?= h($log["action"]) ?></td><td><?= h($log["details"]) ?></td><td><?= h(formatIncidentDate($log["created_at"] ?? null)) ?></td></tr><?php endforeach; endif; ?>
+                <div class="table-panel"><div class="panel-head"><div><h4>Recent activity</h4><p>Latest 100 recorded actions</p></div></div><div class="table-scroll"><table><thead><tr><th>Username</th><th>Event Type</th><th>Details</th><th>Date and time</th></tr></thead><tbody>
+                    <?php if (!$activityLogsReady): ?><tr><td colspan="4"><div class="table-empty"><i class="fa-solid fa-clock-rotate-left"></i><strong>Activity log table is not set up</strong><span>Run schema.sql to enable recording and viewing admin actions.</span></div></td></tr><?php elseif (!$logs): ?><tr><td colspan="4"><div class="table-empty"><i class="fa-regular fa-folder-open"></i><strong>No activity recorded yet</strong><span>Creating a report or changing a status will create an activity entry.</span></div></td></tr><?php else: foreach ($logs as $log): ?><tr><td><?= h($log["username_typed"]) ?></td><td><?= h($log["event_type"]) ?></td><td><?= h($log["details"]) ?></td><td><?= h(formatIncidentDate($log["created_at"] ?? null)) ?></td></tr><?php endforeach; endif; ?>
                 </tbody></table></div></div>
             </section>
 
