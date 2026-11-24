@@ -28,6 +28,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!target) return;
 
+        const pageNavItem = navItems.find(
+            item => item.dataset.page === pageName
+        );
+
+        pageNavItem?.querySelector(".nav-badge")?.remove();
+
+        if (pageName === "notifications") {
+            document
+                .querySelector("#notificationsButton .dot")
+                ?.remove();
+        }
+
         viewSections.forEach(section => {
             const isActive = section === target;
 
@@ -47,13 +59,9 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        const activeItem = navItems.find(
-            item => item.dataset.page === pageName
-        );
-
-        if (breadcrumbCurrent && activeItem) {
+        if (breadcrumbCurrent && pageNavItem) {
             breadcrumbCurrent.textContent =
-                activeItem.dataset.title || activeItem.innerText.trim();
+                pageNavItem.dataset.title || pageNavItem.innerText.trim();
         }
 
         if (pageName === "dashboard") {

@@ -451,7 +451,9 @@ function renderReports(array $reports): void {
                href="?view=reports">
                 <i class="fa-regular fa-file-lines"></i>
                 All reports
-                <b><?= (int) $stats['total'] ?></b>
+                <?php if ($view !== 'reports'): ?>
+                    <b><?= (int) $stats['total'] ?></b>
+                <?php endif; ?>
             </a>
 
             <a class="<?= $view === 'make-report' ? 'active' : '' ?>"
