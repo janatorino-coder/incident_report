@@ -30,8 +30,6 @@ const RS_RESEND_MAX = 3;
 const RS_FLOW_LIFETIME = 900;
 const RS_CHANGE_WINDOW = 600;
 
-const RS_OWNER_EMAIL = 'jdtorino04@gmail.com';
-
 /* ---------------------------------------------------------
    GENERAL HELPERS
 --------------------------------------------------------- */
@@ -290,10 +288,14 @@ function recordFailure(
 
     $count = (int)($record['failed_attempts'] ?? 1);
 
-    if ($userId !== null) {
+    $logUserId = $userId !== null && $userId > 0
+        ? $userId
+        : null;
+
+    if ($logUserId !== null) {
         logActivity(
             $conn,
-            $userId,
+            $logUserId,
             $username,
             'Failed password reset',
             "Incorrect security answer. IP: {$ip}. Attempts: {$count}",
@@ -303,14 +305,58 @@ function recordFailure(
     }
 
     if ($count % RS_MAX_ATTEMPTS === 0) {
+        $tierIndex = min(
+            count(RS_LOCKOUT_TIERS) - 1,
+            intdiv($count - 1, RS_MAX_ATTEMPTS)
+        );
+        $tierNumber = $tierIndex + 1;
+        $cooldown = RS_LOCKOUT_TIERS[$tierIndex];
+
+        logActivity(
+            $conn,
+            $logUserId,
+            $username,
+            'Password recovery lockout tier reached',
+            "Password recovery lockout tier {$tierNumber} reached after {$count} failed attempts; cooldown {$cooldown} seconds.",
+            $ip,
+            "LOCKOUT_TIER_{$tierNumber}"
+        );
+
         try {
-            sendOwnerLockoutAlert(
-                RS_OWNER_EMAIL,
+            $account = $logUserId !== null
+                ? fetchRow(
+                    $conn,
+                    'SELECT email FROM users WHERE id = ? AND role = "student" LIMIT 1',
+                    'i',
+                    [$logUserId]
+                )
+                : null;
+            $recipientEmail = (string)($account['email'] ?? '');
+            $emailSent = filter_var(
+                $recipientEmail,
+                FILTER_VALIDATE_EMAIL
+            ) && sendLockoutAlert(
+                $recipientEmail,
                 'reset',
                 $username,
                 $ip,
                 $count,
-                RS_MAX_ATTEMPTS
+                RS_MAX_ATTEMPTS,
+                (string)($_SERVER['HTTP_USER_AGENT'] ?? '')
+            );
+
+            logActivity(
+                $conn,
+                $logUserId,
+                $username,
+                $emailSent
+                    ? 'Lockout alert email sent'
+                    : 'Lockout alert email failed',
+                $emailSent
+                    ? "Password recovery lockout alert sent to the affected account after tier {$tierNumber}."
+                    : "Password recovery lockout alert could not be sent after tier {$tierNumber}.",
+                $ip,
+                $emailSent ? 'ALERT_EMAIL_SENT' : 'ALERT_EMAIL_FAILED'
             );
         } catch (Throwable $e) {
             error_log(
@@ -741,12 +787,14 @@ function actionVerifyOtp(mysqli $conn): never
 
     $record = fetchRow(
         $conn,
-        'SELECT otp_hash, attempts,
-                (expires_at > NOW()) AS is_valid,
-                (locked_until IS NOT NULL AND locked_until > NOW()) AS is_locked,
-                GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), locked_until)) AS lock_remaining
-         FROM password_reset_otp
-         WHERE user_id = ?
+        'SELECT o.otp_hash, o.attempts,
+                (o.expires_at > NOW()) AS is_valid,
+                (o.locked_until IS NOT NULL AND o.locked_until > NOW()) AS is_locked,
+                GREATEST(0, TIMESTAMPDIFF(SECOND, NOW(), o.locked_until)) AS lock_remaining,
+                u.email
+         FROM password_reset_otp o
+         INNER JOIN users u ON u.id = o.user_id
+         WHERE o.user_id = ?
          LIMIT 1',
         'i',
         [$userId]
@@ -814,14 +862,44 @@ function actionVerifyOtp(mysqli $conn): never
         );
 
         if ($attempts >= RS_OTP_MAX_ATTEMPTS) {
+            logActivity(
+                $conn,
+                $userId,
+                $username,
+                'Password reset OTP locked',
+                "Password reset OTP locked for " . RS_OTP_LOCK_SECONDS .
+                    " seconds after {$attempts} failed attempts.",
+                $ip,
+                'OTP_LOCKOUT'
+            );
+
             try {
-                sendOwnerLockoutAlert(
-                    RS_OWNER_EMAIL,
+                $recipientEmail = (string)($record['email'] ?? '');
+                $emailSent = filter_var(
+                    $recipientEmail,
+                    FILTER_VALIDATE_EMAIL
+                ) && sendLockoutAlert(
+                    $recipientEmail,
                     'otp',
                     $username,
                     $ip,
                     $attempts,
-                    RS_OTP_MAX_ATTEMPTS
+                    RS_OTP_MAX_ATTEMPTS,
+                    (string)($_SERVER['HTTP_USER_AGENT'] ?? '')
+                );
+
+                logActivity(
+                    $conn,
+                    $userId,
+                    $username,
+                    $emailSent
+                        ? 'OTP lockout alert email sent'
+                        : 'OTP lockout alert email failed',
+                    $emailSent
+                        ? "Password reset OTP lockout alert sent to the affected account."
+                        : "Password reset OTP lockout alert could not be sent.",
+                    $ip,
+                    $emailSent ? 'ALERT_EMAIL_SENT' : 'ALERT_EMAIL_FAILED'
                 );
             } catch (Throwable $e) {
                 error_log(

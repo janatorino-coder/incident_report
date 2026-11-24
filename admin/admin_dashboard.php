@@ -57,10 +57,12 @@ function activityEventClass(string $eventType): string {
     if (str_contains($eventType, "SUCCESS") || str_contains($eventType, "VERIFIED")) {
         return "success";
     }
-    if (str_contains($eventType, "LOCKED") || str_contains($eventType, "ALERT")) {
-        return "warning";
-    }
-    if (str_contains($eventType, "LOCKOUT")) {
+    if (
+        str_contains($eventType, "LOCKED") ||
+        str_contains($eventType, "LOCKOUT") ||
+        str_contains($eventType, "BLOCKED") ||
+        str_contains($eventType, "ALERT")
+    ) {
         return "warning";
     }
     if (str_contains($eventType, "FAILED")) {

@@ -341,29 +341,53 @@ if (!$valid) {
         $newCount
     );
 
-    // SEND OWNER LOCKOUT EMAIL
+    // Record each account lockout tier and notify the affected account.
     if ($newCount % MAX_ATTEMPTS === 0) {
-        $emailSent = sendOwnerLockoutAlert(
-            'jdtorino04@gmail.com',
-            'login',
+        $tierIndex = min(
+            count(LOCKOUT_TIERS) - 1,
+            intdiv($newCount - 1, MAX_ATTEMPTS)
+        );
+        $tierNumber = $tierIndex + 1;
+        $cooldown = LOCKOUT_TIERS[$tierIndex];
+
+        logActivity(
+            $conn,
+            $knownUserId,
             $username,
+            'Account lockout tier reached',
+            "Login lockout tier {$tierNumber} reached after {$newCount} failed attempts; cooldown {$cooldown} seconds.",
             $ip,
-            $newCount,
-            MAX_ATTEMPTS
+            "LOCKOUT_TIER_{$tierNumber}"
         );
 
-        if ($emailSent) {
+        $recipientEmail = is_array($user)
+            ? (string)($user['email'] ?? '')
+            : '';
+
+        if (filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+            $emailSent = sendLockoutAlert(
+                $recipientEmail,
+                'login',
+                $username,
+                $ip,
+                $newCount,
+                MAX_ATTEMPTS,
+                (string)($_SERVER['HTTP_USER_AGENT'] ?? '')
+            );
+
             logActivity(
                 $conn,
                 $knownUserId,
                 $username,
-                'Lockout alert email sent',
-                "Login lockout alert sent after {$newCount} failed attempts.",
+                $emailSent
+                    ? 'Lockout alert email sent'
+                    : 'Lockout alert email failed',
+                $emailSent
+                    ? "Login lockout alert sent to the affected account after tier {$tierNumber}."
+                    : "Login lockout alert could not be sent after tier {$tierNumber}.",
                 $ip,
-                'ALERT_EMAIL_SENT'
+                $emailSent ? 'ALERT_EMAIL_SENT' : 'ALERT_EMAIL_FAILED'
             );
-        } else {
-            error_log('Login lockout alert email was not sent.');
         }
     }
 
@@ -376,6 +400,19 @@ if (!$valid) {
 
     if ($ipLockout['remainingSeconds'] > 0) {
         $remaining = $ipLockout['remainingSeconds'];
+
+        logActivity(
+            $conn,
+            null,
+            $username,
+            'IP login threshold reached',
+            'IP reached the failed-login threshold of ' .
+                IP_FAILURE_LIMIT . ' attempts within ' .
+                (int)(IP_FAILURE_WINDOW_SECONDS / 60) .
+                ' minutes. No account-specific email was sent.',
+            $ip,
+            'IP_BLOCKED'
+        );
 
         loginResponse(
             false,

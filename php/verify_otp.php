@@ -106,13 +106,15 @@ if (!preg_match('/^\d{6}$/', $otp)) {
 
 $stmt = $conn->prepare(
     'SELECT
-        otp_hash,
-        attempts,
-        (expires_at > NOW()) AS is_valid,
-        (locked_until IS NOT NULL AND locked_until > NOW()) AS is_locked,
-        IFNULL(TIMESTAMPDIFF(SECOND, NOW(), locked_until), 0) AS lock_remaining
-     FROM login_otp
-     WHERE user_id = ?
+        o.otp_hash,
+        o.attempts,
+        (o.expires_at > NOW()) AS is_valid,
+        (o.locked_until IS NOT NULL AND o.locked_until > NOW()) AS is_locked,
+        IFNULL(TIMESTAMPDIFF(SECOND, NOW(), o.locked_until), 0) AS lock_remaining,
+        u.email
+     FROM login_otp o
+     INNER JOIN users u ON u.id = o.user_id
+     WHERE o.user_id = ?
      LIMIT 1'
 );
 
@@ -296,28 +298,33 @@ if (!password_verify($otp, $otpRecord['otp_hash'])) {
 
         try {
 
-            $alertSent = sendOwnerLockoutAlert(
-                'jdtorino04@gmail.com',
+            $recipientEmail = (string)($otpRecord['email'] ?? '');
+            $alertSent = filter_var(
+                $recipientEmail,
+                FILTER_VALIDATE_EMAIL
+            ) && sendLockoutAlert(
+                $recipientEmail,
                 'otp',
                 $pendingUsername,
                 $currentIP,
                 $newAttempts,
-                3
+                3,
+                (string)($_SERVER['HTTP_USER_AGENT'] ?? '')
             );
 
-            if ($alertSent) {
-                logActivity(
-                    $conn,
-                    $userId,
-                    $pendingUsername,
-                    'OTP lockout alert email sent',
-                    "OTP lockout alert sent after {$newAttempts} failed attempts.",
-                    $currentIP,
-                    'ALERT_EMAIL_SENT'
-                );
-            } else {
-                error_log('OTP lockout alert email was not sent.');
-            }
+            logActivity(
+                $conn,
+                $userId,
+                $pendingUsername,
+                $alertSent
+                    ? 'OTP lockout alert email sent'
+                    : 'OTP lockout alert email failed',
+                $alertSent
+                    ? "OTP lockout alert sent to the affected account after {$newAttempts} failed attempts."
+                    : "OTP lockout alert could not be sent after {$newAttempts} failed attempts.",
+                $currentIP,
+                $alertSent ? 'ALERT_EMAIL_SENT' : 'ALERT_EMAIL_FAILED'
+            );
 
         } catch (Throwable $e) {
 

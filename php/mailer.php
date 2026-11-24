@@ -148,16 +148,17 @@ function sendLoginOTP(string $recipient, string $otp): bool
 
 
 // ==========================================
-// OWNER LOCKOUT SECURITY ALERT
+// ACCOUNT LOCKOUT SECURITY ALERT
 // ==========================================
 
-function sendOwnerLockoutAlert(
-    string $ownerEmail,
+function sendLockoutAlert(
+    string $recipientEmail,
     string $lockoutType,
     string $username,
     string $ip,
     int $failedAttempts = 3,
-    int $maxAttempts = 3
+    int $maxAttempts = 3,
+    string $userAgent = ''
 ): bool {
 
     if ($lockoutType === 'login') {
@@ -201,16 +202,27 @@ function sendOwnerLockoutAlert(
             'UTF-8'
         );
 
+        $userAgent = substr(
+            preg_replace('/[\r\n]+/', ' ', $userAgent) ?? '',
+            0,
+            255
+        );
+        $safeUserAgent = htmlspecialchars(
+            $userAgent,
+            ENT_QUOTES,
+            'UTF-8'
+        );
+
         $dateTime = date('F j, Y h:i:s A');
 
-        $mail->addAddress($ownerEmail);
+        $mail->addAddress($recipientEmail);
         $mail->isHTML(true);
         $mail->Subject = $subject;
 
         $mail->Body = "
-            <h2>Incident Hub Security Alert</h2>
+            <h2>Incident Hub Account Security Alert</h2>
             <h3>{$title}</h3>
-            <p>A user account has reached the maximum number of failed attempts.</p>
+            <p>Your account reached the maximum number of failed attempts.</p>
 
             <table cellpadding='8' cellspacing='0' border='1'>
                 <tr>
@@ -220,6 +232,10 @@ function sendOwnerLockoutAlert(
                 <tr>
                     <td><strong>IP Address</strong></td>
                     <td>{$safeIP}</td>
+                </tr>
+                <tr>
+                    <td><strong>Browser / Device</strong></td>
+                    <td>{$safeUserAgent}</td>
                 </tr>
                 <tr>
                     <td><strong>Failed Attempts</strong></td>
@@ -235,7 +251,7 @@ function sendOwnerLockoutAlert(
                 </tr>
             </table>
 
-            <p>Please review the security logs in Incident Hub.</p>
+            <p>If this was not you, secure your account and contact your school administrator.</p>
         ";
 
         $mail->AltBody =
@@ -243,6 +259,7 @@ function sendOwnerLockoutAlert(
             "Type: {$title}\n" .
             "Username: {$username}\n" .
             "IP Address: {$ip}\n" .
+            "Browser / Device: {$userAgent}\n" .
             "Failed Attempts: {$failedAttempts}/{$maxAttempts}\n" .
             "Reason: {$reason}\n" .
             "Date and Time: {$dateTime}";
@@ -252,7 +269,7 @@ function sendOwnerLockoutAlert(
     } catch (Throwable $e) {
 
         error_log(
-            'Owner lockout alert failed: ' . $e->getMessage()
+            'Account lockout alert failed: ' . $e->getMessage()
         );
 
         return false;
