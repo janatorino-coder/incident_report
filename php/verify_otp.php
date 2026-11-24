@@ -273,9 +273,9 @@ if (!password_verify($otp, $otpRecord['otp_hash'])) {
         $userId,
         $pendingUsername,
         'Failed OTP verification',
-        "Incorrect OTP. IP: {$currentIP}. Failed attempts: {$newAttempts}/3",
+        "Incorrect OTP. Failed attempts: {$newAttempts}/3",
         $currentIP,
-        'failed_otp'
+        'OTP_FAILED'
     );
 
 
@@ -288,21 +288,33 @@ if (!password_verify($otp, $otpRecord['otp_hash'])) {
             $userId,
             $pendingUsername,
             'OTP verification locked',
-            "OTP verification locked for 60 seconds. IP: {$currentIP}. Failed attempts: {$newAttempts}/3",
+            "OTP verification locked for 60 seconds after {$newAttempts} failed attempts.",
             $currentIP,
-            'otp_locked'
+            'OTP_LOCKOUT'
         );
 
         try {
 
-            if (!sendOwnerLockoutAlert(
-                'jana.torino@csucc.edu.ph',
+            $alertSent = sendOwnerLockoutAlert(
+                'jdtorino04@gmail.com',
                 'otp',
                 $pendingUsername,
                 $currentIP,
                 $newAttempts,
                 3
-            )) {
+            );
+
+            if ($alertSent) {
+                logActivity(
+                    $conn,
+                    $userId,
+                    $pendingUsername,
+                    'OTP lockout alert email sent',
+                    "OTP lockout alert sent after {$newAttempts} failed attempts.",
+                    $currentIP,
+                    'ALERT_EMAIL_SENT'
+                );
+            } else {
                 error_log('OTP lockout alert email was not sent.');
             }
 
@@ -508,7 +520,7 @@ if ($authType === 'registration') {
         'Successful registration verification',
         'Student email OTP verified. Account is now verified.',
         $currentIP,
-        'registration_verified'
+        'ACCOUNT_VERIFIED'
     );
 
 
@@ -638,10 +650,10 @@ logActivity(
     $conn,
     $authenticatedUserId,
     $username,
-    'Successful OTP verification',
-    'Email OTP verified successfully.',
+    'Successful login',
+    'Email OTP verified successfully. User authenticated.',
     $currentIP,
-    'login_success'
+    'LOGIN_SUCCESS'
 );
 
 
