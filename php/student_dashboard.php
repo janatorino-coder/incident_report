@@ -27,16 +27,7 @@ if (
 
 $_SESSION['last_activity'] = time();
 
-if (is_file(dirname(__DIR__) . "/php/config.php")) {
-    require_once dirname(__DIR__) . "/php/config.php";
-}
-
-if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
-    http_response_code(500);
-    exit('Database connection failed. Check config.php.');
-}
-
-$conn->set_charset('utf8mb4');
+require_once __DIR__ . '/bootstrap.php';
 
 function h($value): string {
     return htmlspecialchars(
@@ -421,7 +412,7 @@ function renderReports(array $reports): void {
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <link rel="stylesheet" href="student.css">
+    <link rel="stylesheet" href="../css/student.css">
 </head>
 <body>
 
@@ -899,6 +890,6 @@ function renderReports(array $reports): void {
     <p>If someone is in immediate danger, contact a trusted teacher or school office directly.</p>
 </dialog>
 
-<script src="student.js"></script>
+<script src="../js/student.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 
 session_start();
 
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/activity_logger.php';
 require_once __DIR__ . '/mailer.php';
 require_once __DIR__ . '/session.php';

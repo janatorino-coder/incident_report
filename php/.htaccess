@@ -1,0 +1,3 @@
+<FilesMatch "^(bootstrap|mailer|activity_logger|security_questions|session)\.php$">
+    Require all denied
+</FilesMatch>

@@ -102,7 +102,7 @@ a { color: inherit; }
     overflow: hidden;
     border-radius: 26px;
     isolation: isolate;
-    background-image: url("../image/school-hero.png");
+    background-image: url("../images/school-hero.png");
     background-size: cover;
     background-position: center;
     box-shadow: var(--shadow);
@@ -738,14 +738,17 @@ body.modal-open { overflow: hidden; }
 }
 
 .strength-meter-fill.weak {
+    width: 33%;
     background-color: #dc3545;
 }
 
 .strength-meter-fill.medium {
+    width: 66%;
     background-color: #f0ad4e;
 }
 
 .strength-meter-fill.strong {
+    width: 100%;
     background-color: #239447;
 }
 

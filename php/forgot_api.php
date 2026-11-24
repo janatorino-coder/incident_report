@@ -9,10 +9,10 @@
 
 session_start();
 
-require_once __DIR__ . '/../php/config.php';
-require_once __DIR__ . '/../php/activity_logger.php';
-require_once __DIR__ . '/../php/mailer.php';
-require_once __DIR__ . '/../php/security_questions.php';
+require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/activity_logger.php';
+require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/security_questions.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');

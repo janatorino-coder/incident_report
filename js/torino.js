@@ -20,6 +20,20 @@ function togglePassword(icon) {
     );
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".toggle-password").forEach(icon => {
+        const handleToggle = () => togglePassword(icon);
+
+        icon.addEventListener("click", handleToggle);
+        icon.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleToggle();
+            }
+        });
+    });
+});
+
 
 // ==========================================
 // REGISTRATION FIELD HELPERS
@@ -924,8 +938,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (password.length === 0) {
                 strengthText.textContent = "Not entered";
 
-                strengthBar.style.width = "0%";
-
                 strengthBar.className = "strength-meter-fill";
 
                 return;
@@ -953,13 +965,6 @@ document.addEventListener("DOMContentLoaded", () => {
             strengthBar.className =
                 "strength-meter-fill " + strength.toLowerCase();
 
-            if (strength === "Weak") {
-                strengthBar.style.width = "33%";
-            } else if (strength === "Medium") {
-                strengthBar.style.width = "66%";
-            } else {
-                strengthBar.style.width = "100%";
-            }
         }
 
         passwordInput.addEventListener(

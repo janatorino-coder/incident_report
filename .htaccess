@@ -1,0 +1,13 @@
+Options -Indexes
+RewriteEngine On
+
+RewriteRule ^admin/admin_dashboard\.php$ php/admin_dashboard.php [L]
+RewriteRule ^student/student_dashboard\.php$ php/student_dashboard.php [L]
+RewriteRule ^forgot_pass/forgot_password\.html$ html/forgot_password.html [L]
+RewriteRule ^forgot_pass/forgot_api\.php$ php/forgot_api.php [L]
+RewriteRule ^scripts(?:/|$) - [F,L]
+RewriteRule ^vendor(?:/|$) - [F,L]
+
+<FilesMatch "^\.env(?:\..*)?$">
+    Require all denied
+</FilesMatch>

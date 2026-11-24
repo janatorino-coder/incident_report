@@ -53,10 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!element) return;
 
         element.textContent = message || '';
-        element.style.color = isError ? '#c62828' : '#239447';
 
         element.classList.toggle('show', Boolean(message));
         element.classList.toggle('success', !isError && Boolean(message));
+        element.classList.remove('lockout');
     }
 
     function startLoginCooldown(seconds) {
@@ -68,8 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
             loginMessage.textContent =
                 `Too many failed login attempts. Please wait ${secondsLeft} seconds.`;
 
-            loginMessage.style.color = '#c62828';
-            loginMessage.classList.add('show');
+            loginMessage.classList.add('show', 'lockout');
 
             loginButton.textContent = `Cooldown (${secondsLeft}s)`;
 

@@ -1,5 +1,7 @@
 config.php
 *.log
+/error.log
+/php/error.log
 .DS_Store
 Thumbs.db
 
@@ -10,3 +12,4 @@ Thumbs.db
 
 # Dependencies
 /vendor/
+/node_modules/

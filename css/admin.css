@@ -35,6 +35,8 @@ body {
     line-height: 1.5;
 }
 
+body.modal-open { overflow: hidden; }
+
 a { color: inherit; text-decoration: none; }
 ul { list-style: none; }
 button { font-family: inherit; }
@@ -236,6 +238,7 @@ button { font-family: inherit; }
     color: var(--ink);
     font-weight: 600;
 }
+.breadcrumb-chevron { font-size: 10px; }
 
 .topbar-right {
     display: flex;
@@ -385,7 +388,7 @@ button { font-family: inherit; }
     margin-bottom: 22px;
     background-image:
         linear-gradient(100deg, rgba(10, 31, 24, 0.86) 0%, rgba(10, 31, 24, 0.55) 48%, rgba(10, 31, 24, 0.15) 100%),
-        url("school-hero.png");
+        url("../images/school-hero.png");
     background-size: cover;
     background-position: center;
 }
@@ -545,6 +548,14 @@ button { font-family: inherit; }
     display: inline-block;
     margin-right: 7px;
 }
+.legend-dot.color-0 { background: #1f7a52; }
+.legend-dot.color-1 { background: #2563a8; }
+.legend-dot.color-2 { background: #b7791f; }
+.legend-dot.color-3 { background: #0f8a76; }
+.legend-dot.color-4 { background: #8b5cf6; }
+.legend-dot.color-5 { background: #d46c57; }
+.legend-dot.color-6 { background: #7c8f88; }
+.legend-dot.color-7 { background: #68a5a0; }
 
 .donut-legend {
     display: flex;
@@ -908,8 +919,10 @@ textarea:focus-visible {
 .filter-count { margin-left: auto; color: var(--muted); font-size: 12px; }
 
 .share-cell { display: flex; align-items: center; gap: 10px; min-width: 145px; }
-.share-track { display: block; width: 95px; height: 7px; overflow: hidden; background: #edf3ef; border-radius: 999px; }
-.share-track span { display: block; height: 100%; background: #329566; border-radius: 999px; }
+.share-track { appearance: none; display: block; width: 95px; height: 7px; overflow: hidden; border: 0; border-radius: 999px; background: #edf3ef; }
+.share-track::-webkit-progress-bar { border-radius: 999px; background: #edf3ef; }
+.share-track::-webkit-progress-value { border-radius: 999px; background: #329566; }
+.share-track::-moz-progress-bar { border-radius: 999px; background: #329566; }
 .share-cell strong { font-size: 12px; color: var(--muted); }
 .status-summary { display: flex; flex-direction: column; gap: 0; }
 .status-summary > div { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 10px; padding: 15px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -1134,11 +1147,10 @@ html, body { height:100%; margin:0; }
 .hourly-bar {
     display: block;
     width: 100%;
-    min-height: 0;
-    border-radius: 3px 3px 0 0;
-    background: #3478b9;
+    height: 100%;
 }
-.hourly-bar.peak { background: #c23b2b; }
+.hourly-bar rect { fill: #3478b9; }
+.hourly-bar.peak rect { fill: #c23b2b; }
 .hourly-axis {
     display: flex;
     justify-content: space-between;

@@ -1,5 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const dashboardData = window.SIRS_DASHBOARD_DATA || {
+    const appRoot = document.getElementById("adminApp");
+    const dashboardData = appRoot?.dataset.dashboard
+        ? JSON.parse(appRoot.dataset.dashboard)
+        : {
         total: 0,
         weekly: { labels: [], values: [] },
         monthly: { labels: [], values: [] },
@@ -110,7 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
         modal.hidden = false;
         activeModal = modal;
 
-        document.body.style.overflow = "hidden";
+        document.body.classList.add("modal-open");
 
         const firstField = modal.querySelector(
             "input:not([type=hidden]), select, textarea, button"
@@ -127,7 +130,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         activeModal = null;
-        document.body.style.overflow = "";
+        document.body.classList.remove("modal-open");
     }
 
     document.querySelectorAll(".open-report-modal").forEach(button => {
@@ -593,10 +596,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const label = document.createElement("span");
             const stats = document.createElement("span");
 
-            dot.className = "legend-dot";
-
-            dot.style.backgroundColor =
-                chartColors[index % chartColors.length];
+            dot.className = "legend-dot color-" +
+                (index % chartColors.length);
 
             label.textContent =
                 String(category.label || "Other");

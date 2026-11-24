@@ -3,14 +3,7 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$dotenv = Dotenv\Dotenv::createImmutable(
-    dirname(__DIR__)
-);
-
-$dotenv->safeLoad();
-
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
 
 // ==========================================
@@ -19,23 +12,35 @@ use PHPMailer\PHPMailer\Exception;
 
 function createMailer(): PHPMailer
 {
+    global $appConfig;
+
     $mail = new PHPMailer(true);
 
-    $host = $_ENV['BREVO_SMTP_HOST'] ?? '';
-    $username = $_ENV['BREVO_SMTP_USERNAME'] ?? '';
-    $password = $_ENV['BREVO_SMTP_PASSWORD'] ?? '';
-    $fromEmail = $_ENV['BREVO_FROM_EMAIL'] ?? '';
-    $fromName = $_ENV['BREVO_FROM_NAME'] ?? 'Incident Hub';
+    $smtp = $appConfig['smtp'] ?? [];
+    $host = $smtp['host'] ?? '';
+    $username = $smtp['username'] ?? '';
+    $password = $smtp['password'] ?? '';
+    $fromEmail = $smtp['from_email'] ?? '';
+    $fromName = $smtp['from_name'] ?? 'Incident Hub';
+    $port = filter_var(
+        $smtp['port'] ?? 587,
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1, 'max_range' => 65535]]
+    );
 
     if (
+        !is_string($host) ||
         $host === '' ||
+        !is_string($username) ||
         $username === '' ||
+        !is_string($password) ||
         $password === '' ||
-        $fromEmail === '' ||
-        !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)
+        !is_string($fromEmail) ||
+        !filter_var($fromEmail, FILTER_VALIDATE_EMAIL) ||
+        $port === false
     ) {
         throw new RuntimeException(
-            'Brevo SMTP configuration is incomplete. Check your .env file.'
+            'SMTP configuration is incomplete. Check the private config.php file.'
         );
     }
 
@@ -45,7 +50,7 @@ function createMailer(): PHPMailer
     $mail->Username = $username;
     $mail->Password = $password;
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port = 587;
+    $mail->Port = $port;
     $mail->CharSet = 'UTF-8';
 
     $mail->setFrom($fromEmail, $fromName);
@@ -79,7 +84,7 @@ function sendRegistrationOTP(string $recipient, string $otp): bool
             <h2>Verify Your Incident Hub Account</h2>
             <p>Thank you for registering with Incident Hub.</p>
             <p>Your registration verification code is:</p>
-            <h1 style='letter-spacing: 8px;'>{$safeOTP}</h1>
+            <h1>{$safeOTP}</h1>
             <p>This code expires in <strong>5 minutes</strong>.</p>
             <p>If you did not create this account, please ignore this email.</p>
         ";
@@ -125,7 +130,7 @@ function sendLoginOTP(string $recipient, string $otp): bool
         $mail->Body = "
             <h2>Incident Hub Verification</h2>
             <p>Your login verification code is:</p>
-            <h1 style='letter-spacing: 8px;'>{$safeOTP}</h1>
+            <h1>{$safeOTP}</h1>
             <p>This code expires in 5 minutes.</p>
             <p>If you did not attempt to log in, please ignore this email.</p>
         ";
@@ -301,7 +306,7 @@ function sendResetOTP(string $recipient, string $otp): bool
         $mail->Body = "
             <h2>Incident Hub Password Reset</h2>
             <p>Your password reset code is:</p>
-            <h1 style='letter-spacing: 8px;'>{$safeOTP}</h1>
+            <h1>{$safeOTP}</h1>
             <p>This code expires in 5 minutes.</p>
             <p>If you did not request a password reset, please ignore this email.</p>
         ";

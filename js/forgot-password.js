@@ -1,230 +1,3 @@
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Forgot password - Incident Hub</title>
-<style>
-:root { --green:#239447; --red:#c62828; --orange:#e65100; --ink:#1d2a22; --muted:#5f6b64; --line:#d7ded9; --bg:#f3f6f4; }
-* { box-sizing:border-box; }
-body { margin:0; min-height:100vh; display:grid; place-items:center; padding:24px; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
-.card { width:100%; max-width:440px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:28px; }
-h1 { margin:0 0 4px; font-size:1.4rem; }
-.sub { margin:0 0 18px; color:var(--muted); font-size:.95rem; }
-.steps { display:flex; gap:6px; list-style:none; margin:0 0 22px; padding:0; }
-.steps li { flex:1; text-align:center; font-size:.78rem; color:var(--muted); padding-top:8px; border-top:3px solid var(--line); }
-.steps li.active { color:var(--ink); font-weight:600; border-color:var(--green); }
-.steps li.done { border-color:var(--green); }
-label { display:block; margin:0 0 14px; font-weight:600; font-size:.92rem; }
-input, select { display:block; width:100%; margin-top:6px; padding:10px 12px; border:1px solid var(--line); border-radius:6px; font:inherit; background:#fff; color:var(--ink); }
-input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline:3px solid #9ad3ad; outline-offset:1px; }
-input:disabled { background:#eef1ef; }
-.captcha { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.captcha img { height:44px; border:1px solid var(--line); border-radius:6px; }
-button { font:inherit; cursor:pointer; }
-.primary { width:100%; padding:11px; border:0; border-radius:6px; background:var(--green); color:#fff; font-weight:600; }
-.primary:disabled { background:#9bb8a5; cursor:not-allowed; }
-.ghost { margin-top:10px; width:100%; padding:10px; border:1px solid var(--line); border-radius:6px; background:#fff; }
-.ghost:disabled { color:#99a39d; cursor:not-allowed; }
-.small { border:1px solid var(--line); border-radius:6px; background:#fff; padding:8px 12px; }
-.link { margin-top:12px; background:none; border:0; color:var(--muted); text-decoration:underline; padding:0; }
-.msg { min-height:1.4em; margin:10px 0 0; font-size:.92rem; }
-.msg.err { color:var(--red); }
-.msg.ok { color:var(--green); }
-.question { margin:0 0 14px; padding:12px; background:var(--bg); border-radius:6px; font-weight:600; }
-.expiry { text-align:center; font-size:1.15rem; font-weight:700; color:var(--green); margin:6px 0 14px; }
-.expiry.warning { color:var(--orange); }
-.expiry.expired { color:var(--red); }
-.otp { text-align:center; letter-spacing:.5em; font-size:1.4rem; }
-.meter { height:8px; background:var(--line); border-radius:4px; overflow:hidden; }
-.meter span { display:block; height:100%; width:0; background:var(--red); transition:width .2s, background .2s; }
-.meter-label { font-size:.85rem; margin:4px 0 8px; color:var(--muted); }
-.rules { list-style:none; margin:0 0 14px; padding:0; font-size:.88rem; color:var(--muted); }
-.rules li::before { content:"\2717  "; color:var(--red); }
-.rules li.ok { color:var(--ink); }
-.rules li.ok::before { content:"\2713  "; color:var(--green); }
-.back { margin:16px 0 0; text-align:center; font-size:.9rem; }
-.back a { color:var(--muted); }
-.password-field { position:relative; margin-top:6px; }
-.password-field input { margin-top:0; padding-right:48px; }
-.password-toggle { position:absolute; top:50%; right:6px; display:grid; place-items:center; width:34px; height:34px; padding:0; transform:translateY(-50%); border:0; border-radius:6px; background:transparent; color:var(--muted); }
-.password-toggle:hover { background:var(--bg); color:var(--green); }
-.password-toggle svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-[hidden] { display:none !important; }
-</style>
-</head>
-<body>
-<main class="card">
-  <h1>Forgot password</h1>
-  <p class="sub">Verify your identity to set a new password.</p>
-
-  <ol class="steps" id="steps">
-    <li>Account</li>
-    <li>Questions</li>
-    <li>Verify</li>
-    <li>New password</li>
-  </ol>
-
-  <!-- Step 1: username + CAPTCHA -->
-  <section id="pStart" hidden>
-    <form id="fStart" autocomplete="off">
-      <label>Username
-        <input id="username" minlength="6" maxlength="20" required autocomplete="username">
-      </label>
-
-      <div class="captcha">
-        <img id="captchaImage" alt="CAPTCHA image">
-        <button type="button" class="small" id="refreshCaptcha">Refresh</button>
-      </div>
-
-      <label>Type the characters shown
-        <input id="captcha" maxlength="10" required autocomplete="off">
-      </label>
-
-      <button class="primary" id="startBtn">Continue</button>
-      <p class="msg" id="startMsg" role="alert"></p>
-    </form>
-
-    <p class="back">
-      <a href="../html/Torino.html?mode=login">Back to login</a>
-    </p>
-  </section>
-
-  <!-- Step 2: registered security questions -->
-  <section id="pQuestions" hidden>
-    <form id="fQ" autocomplete="off">
-      <p class="sub">Choose one of your registered security questions.</p>
-
-      <label>Choose the following question
-        <select id="questionCode" required>
-          <option value="">Select a security question</option>
-        </select>
-      </label>
-
-      <label>Your Answer
-        <input id="answer" maxlength="100" required autocomplete="off">
-      </label>
-
-      <label>Re-enter Answer
-        <input id="confirmAnswer" maxlength="100" required autocomplete="off">
-      </label>
-
-      <button class="primary" id="qBtn">Continue</button>
-      <p class="msg" id="qMsg" role="alert"></p>
-    </form>
-
-    <button class="link" type="button" data-cancel>Start over</button>
-  </section>
-
-  <!-- Step 3: reset OTP -->
-  <section id="pOtp" hidden>
-    <form id="fOtp" autocomplete="off">
-      <p class="sub" id="otpDesc"></p>
-
-      <p class="expiry" id="otpExpiry" aria-live="polite"></p>
-
-      <label>Six-digit code
-        <input
-          id="otpCode"
-          class="otp"
-          inputmode="numeric"
-          maxlength="6"
-          pattern="\d{6}"
-          required
-          autocomplete="one-time-code"
-        >
-      </label>
-
-      <button class="primary" id="verifyBtn">Verify and continue</button>
-      <button class="ghost" type="button" id="resendBtn">Resend verification code</button>
-      <p class="msg" id="otpMsg" role="alert"></p>
-    </form>
-
-    <button class="link" type="button" data-cancel>Start over</button>
-  </section>
-
-  <!-- Step 4: change password -->
-  <section id="pChange" hidden>
-    <form id="fChange" autocomplete="off">
-      <label for="newPw">Enter Password</label>
-      <div class="password-field">
-        <input
-          id="newPw"
-          type="password"
-          minlength="8"
-          maxlength="64"
-          required
-          autocomplete="new-password"
-        >
-        <button
-          class="password-toggle"
-          type="button"
-          data-password-toggle="newPw"
-          aria-label="Show password"
-          aria-pressed="false"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-            <path data-eye-slash d="m4 4 16 16" hidden></path>
-          </svg>
-        </button>
-      </div>
-
-      <div class="meter">
-        <span id="meterBar"></span>
-      </div>
-
-      <p class="meter-label" id="meterLabel">Strength: none</p>
-      <ul class="rules" id="rules"></ul>
-
-      <label for="confirmPw">Re-enter Password</label>
-      <div class="password-field">
-        <input
-          id="confirmPw"
-          type="password"
-          minlength="8"
-          maxlength="64"
-          required
-          autocomplete="new-password"
-        >
-        <button
-          class="password-toggle"
-          type="button"
-          data-password-toggle="confirmPw"
-          aria-label="Show password"
-          aria-pressed="false"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path>
-            <circle cx="12" cy="12" r="3"></circle>
-            <path data-eye-slash d="m4 4 16 16" hidden></path>
-          </svg>
-        </button>
-      </div>
-
-      <button class="primary" id="changeBtn" disabled>Change password</button>
-      <p class="msg" id="changeMsg" role="alert"></p>
-    </form>
-
-    <button class="link" type="button" data-cancel>Start over</button>
-  </section>
-
-  <!-- Done -->
-  <section id="pDone" hidden>
-    <p class="question" id="doneMessage">Successfully Change Password</p>
-
-    <a
-      class="primary"
-      id="loginLink"
-      href="../html/Torino.html?mode=login"
-      style="display:block;text-align:center;text-decoration:none;"
-    >Go to login</a>
-  </section>
-</main>
-
-<script>
 (() => {
   const $ = id => document.getElementById(id);
 
@@ -289,7 +62,7 @@ button { font:inherit; cursor:pointer; }
     });
 
     try {
-      const res = await fetch('forgot_api.php', {
+      const res = await fetch('../php/forgot_api.php', {
         method: 'POST',
         body: fd,
         credentials: 'same-origin'
@@ -682,8 +455,6 @@ button { font:inherit; cursor:pointer; }
     if (password.length < 8 || password.length > 64 || categoryCount < 3) {
       return {
         level: 'Weak',
-        width: 33,
-        color: '#c62828',
         accepted: false
       };
     }
@@ -691,16 +462,12 @@ button { font:inherit; cursor:pointer; }
     if (password.length >= 12 && categoryCount === 4) {
       return {
         level: 'Strong',
-        width: 100,
-        color: '#239447',
         accepted: true
       };
     }
 
     return {
       level: 'Medium',
-      width: 66,
-      color: '#e65100',
       accepted: true
     };
   }
@@ -717,11 +484,8 @@ button { font:inherit; cursor:pointer; }
 
     const strength = getPasswordStrength(password);
 
-    $('meterBar').style.width = password.length
-      ? strength.width + '%'
-      : '0%';
-
-    $('meterBar').style.background = strength.color;
+    $('meterBar').className = 'strength-' +
+      (password.length ? strength.level.toLowerCase() : 'empty');
 
     $('meterLabel').textContent = 'Strength: ' +
       (password.length ? strength.level : 'none');
@@ -862,6 +626,3 @@ button { font:inherit; cursor:pointer; }
     }
   });
 })();
-</script>
-</body>
-</html>

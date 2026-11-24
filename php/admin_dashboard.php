@@ -235,26 +235,17 @@ $dbMessage = "";
 $activityLogsReady = false;
 $loginAttemptsReady = false;
 
-if (is_file(dirname(__DIR__) . "/php/config.php")) {
-    require_once dirname(__DIR__) . "/php/config.php";
-    if (isset($conn) && $conn instanceof mysqli && !$conn->connect_errno) {
-        $conn->set_charset("utf8mb4");
-        $tableCheck = @$conn->query("SHOW TABLES LIKE 'incidents'");
-        if ($tableCheck && $tableCheck->num_rows > 0) {
-            $dbReady = true;
-        } else {
-            $dbMessage = "The database connection is available, but the incidents table was not found. Run schema.sql in the same database used by config.php.";
-        }
-        $logsCheck = @$conn->query("SHOW TABLES LIKE 'activity_logs'");
-        $activityLogsReady = $logsCheck && $logsCheck->num_rows > 0;
-        $attemptsCheck = @$conn->query("SHOW TABLES LIKE 'login_attempts'");
-        $loginAttemptsReady = $attemptsCheck && $attemptsCheck->num_rows > 0;
-    } else {
-        $dbMessage = "Database connection was not available. Check that config.php creates a working MySQLi connection named \$conn.";
-    }
+require_once __DIR__ . '/bootstrap.php';
+$tableCheck = @$conn->query("SHOW TABLES LIKE 'incidents'");
+if ($tableCheck && $tableCheck->num_rows > 0) {
+    $dbReady = true;
 } else {
-    $dbMessage = "config.php was not found. Put admin_dashboard.php in the same project folder as your database configuration file.";
+    $dbMessage = "The database connection is available, but the incidents table was not found. Run schema.sql in the same database used by the private config.php.";
 }
+$logsCheck = @$conn->query("SHOW TABLES LIKE 'activity_logs'");
+$activityLogsReady = $logsCheck && $logsCheck->num_rows > 0;
+$attemptsCheck = @$conn->query("SHOW TABLES LIKE 'login_attempts'");
+$loginAttemptsReady = $attemptsCheck && $attemptsCheck->num_rows > 0;
 
 // Record every successful admin dashboard visit.
 if ($dbReady && $activityLogsReady && $conn) {
@@ -692,10 +683,10 @@ $hasHourlyFailures = $maxHourlyFailures > 0;
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="../css/admin.css">
 </head>
 <body>
-<div class="app">
+<div class="app" id="adminApp" data-dashboard="<?= h(json_encode($chartPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE)) ?>">
     <aside class="sidebar">
         <div class="brand">
             <div class="brand-mark"><i class="fa-solid fa-shield-halved"></i></div>
@@ -740,7 +731,7 @@ $hasHourlyFailures = $maxHourlyFailures > 0;
 
     <div class="main">
         <header class="topbar">
-            <div class="breadcrumb"><span>Workspace</span><i class="fa-solid fa-chevron-right" style="font-size:10px"></i><span class="current" id="breadcrumbCurrent">Dashboard overview</span></div>
+            <div class="breadcrumb"><span>Workspace</span><i class="breadcrumb-chevron fa-solid fa-chevron-right"></i><span class="current" id="breadcrumbCurrent">Dashboard overview</span></div>
             <div class="topbar-right">
                 <button type="button" class="bell" id="notificationsButton" aria-label="Open notifications"><i class="fa-regular fa-bell"></i><?php if ($notificationsCount > 0): ?><span class="dot"></span><?php endif; ?></button>
                 <div class="topbar-divider"></div>
@@ -784,7 +775,7 @@ $hasHourlyFailures = $maxHourlyFailures > 0;
                 <div class="page-head"><div><h2>Analytics and reports</h2><p>Summaries generated from the incident records currently saved in the database.</p></div></div>
                 <div class="stat-grid analytics-stat-grid"><div class="stat-card"><div class="stat-top"><span class="label">Total reports</span><div class="stat-icon green"><i class="fa-solid fa-file-lines"></i></div></div><div class="stat-value"><?= number_format($stats["total"]) ?></div><div class="stat-foot">All stored incidents</div></div><div class="stat-card"><div class="stat-top"><span class="label">Pending</span><div class="stat-icon amber"><i class="fa-solid fa-clock"></i></div></div><div class="stat-value"><?= number_format($stats["pending"]) ?></div><div class="stat-foot">Need initial review</div></div><div class="stat-card"><div class="stat-top"><span class="label">Resolved rate</span><div class="stat-icon teal"><i class="fa-solid fa-check"></i></div></div><div class="stat-value"><?= $resolvedRate ?>%</div><div class="stat-foot">Resolved divided by total</div></div></div>
                 <div class="panel-row"><div class="panel"><div class="panel-head"><div><h4>Category breakdown</h4><p>Counts from all stored incidents</p></div></div><div class="table-scroll"><table><thead><tr><th>Category</th><th>Reports</th><th>Share</th></tr></thead><tbody>
-                    <?php if (!$categoryData): ?><tr><td colspan="3"><div class="table-empty"><i class="fa-solid fa-chart-column"></i><strong>No analytics available yet</strong><span>There will be a breakdown after reports have been submitted.</span></div></td></tr><?php else: foreach ($categoryData as $category): $share = $stats["total"] ? round(($category["value"] / $stats["total"]) * 100, 1) : 0; ?><tr><td><?= h($category["label"]) ?></td><td><?= number_format($category["value"]) ?></td><td><div class="share-cell"><span class="share-track"><span style="width: <?= min(100, $share) ?>%"></span></span><strong><?= h($share) ?>%</strong></div></td></tr><?php endforeach; endif; ?>
+                    <?php if (!$categoryData): ?><tr><td colspan="3"><div class="table-empty"><i class="fa-solid fa-chart-column"></i><strong>No analytics available yet</strong><span>There will be a breakdown after reports have been submitted.</span></div></td></tr><?php else: foreach ($categoryData as $category): $share = $stats["total"] ? round(($category["value"] / $stats["total"]) * 100, 1) : 0; ?><tr><td><?= h($category["label"]) ?></td><td><?= number_format($category["value"]) ?></td><td><div class="share-cell"><progress class="share-track" value="<?= h(min(100, $share)) ?>" max="100" aria-label="Report share <?= h($share) ?>%"></progress><strong><?= h($share) ?>%</strong></div></td></tr><?php endforeach; endif; ?>
                 </tbody></table></div></div><div class="panel"><div class="panel-head"><div><h4>Report status summary</h4><p>Current workflow snapshot</p></div></div><div class="status-summary"><div><span class="summary-bullet pending-bullet"></span><span>Pending</span><strong><?= number_format($stats["pending"]) ?></strong></div><div><span class="summary-bullet review-bullet"></span><span>In review</span><strong><?= number_format($stats["in_review"]) ?></strong></div><div><span class="summary-bullet resolved-bullet"></span><span>Resolved</span><strong><?= number_format($stats["resolved"]) ?></strong></div></div><p class="muted-note">These values update when the page reloads after a report is created or its status changes.</p></div></div>
                 <div class="table-panel"><div class="panel-head"><div><h4>Monthly report totals</h4><p>Last six months, including months with zero reports</p></div></div><div class="table-scroll"><table><thead><tr><th>Month</th><th>Number of reports</th></tr></thead><tbody><?php foreach ($monthlyData["labels"] as $index => $label): ?><tr><td><?= h($label) ?></td><td><?= number_format((int)($monthlyData["values"][$index] ?? 0)) ?></td></tr><?php endforeach; ?></tbody></table></div></div>
             </section>
@@ -820,7 +811,7 @@ $hasHourlyFailures = $maxHourlyFailures > 0;
                             <?php if (!$hasHourlyFailures): ?><p class="security-chart-note">No failed log-ins recorded in the last 24 hours.</p><?php endif; ?>
                             <div class="hourly-chart" role="img" aria-label="Failed log-ins per hour for the last 24 hours">
                                 <?php foreach ($hourlyFailures as $index => $failures): $barHeight = $failures > 0 ? max(5, (int)round(($failures / $maxHourlyFailures) * 100)) : 0; ?>
-                                    <span class="hourly-bar-wrap" title="<?= h($hourlyLabels[$index] . " — " . $failures . " failed log-ins") ?>"><span class="hourly-bar <?= $failures === $maxHourlyFailures && $failures > 0 ? "peak" : "" ?>" style="height: <?= $barHeight ?>%"></span></span>
+                                    <span class="hourly-bar-wrap" title="<?= h($hourlyLabels[$index] . " — " . $failures . " failed log-ins") ?>"><svg class="hourly-bar <?= $failures === $maxHourlyFailures && $failures > 0 ? "peak" : "" ?>" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><rect x="0" y="<?= 100 - $barHeight ?>" width="100" height="<?= $barHeight ?>"></rect></svg></span>
                                 <?php endforeach; ?>
                             </div>
                             <div class="hourly-axis"><span><?= h($hourlyLabels[0] ?? "") ?></span><span><?= h($hourlyLabels[6] ?? "") ?></span><span><?= h($hourlyLabels[12] ?? "") ?></span><span><?= h($hourlyLabels[18] ?? "") ?></span><span><?= h($hourlyLabels[23] ?? "") ?></span></div>
@@ -938,8 +929,7 @@ $hasHourlyFailures = $maxHourlyFailures > 0;
     </section>
 </div>
 
-<script>window.SIRS_DASHBOARD_DATA = <?= json_encode($chartPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<script src="admin.js"></script>
+<script src="../js/chart.umd.js"></script>
+<script src="../js/admin.js"></script>
 </body>
 </html>
